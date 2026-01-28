@@ -21,7 +21,7 @@ export const updateInventoryStatus = async (inventoryId, statusId, userId, notes
   if (!inventoryId || !statusId || !userId) return { error: 'Missing data' };
   
   const { data, error } = await supabase
-    .from('StatusChanges')
+    .from('status_changes')
     .insert([{ 
       inventory_id: inventoryId, 
       status_id: statusId, 
@@ -58,13 +58,13 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
   
   // 2. Fetch Data from Supabase
   const { data: inventoryData, error: inventoryError } = await supabase
-    .from('Inventory')
+    .from('inventory')
     .select(`
       id,
       produced,
       tag,
-      product:Products(product_name),
-      species:Species(species_name),
+      product:products(product_name),
+      species:species(species_name),
       boardfeet,
       quantity,
       inventory_value,

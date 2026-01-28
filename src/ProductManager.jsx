@@ -4,7 +4,7 @@ import { supabase } from './supabaseClient';
 export default function ProductManager() {
   const [products, setProducts] = useState([]);
   const [species, setSpecies] = useState([]);
-  const [groups, setGroups] = useState([]); 
+  const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
 
@@ -18,7 +18,7 @@ export default function ProductManager() {
     default_length: '',
     default_quantity: '',
     species_id: '',
-    group_id: '', 
+    group_id: '',
     account: '',
     account_product: '',
     menu_show: true
@@ -32,9 +32,9 @@ export default function ProductManager() {
 
   async function fetchInitialData() {
     const [p, s, g] = await Promise.all([
-      supabase.from('Products').select('*').order('product_name'),
-      supabase.from('Species').select('id, species_name'),
-      supabase.from('SpeciesGroups').select('id, group_name') 
+      supabase.from('products').select('*').order('product_name'),
+      supabase.from('species').select('id, species_name'),
+      supabase.from('species_groups').select('id, group_name')
     ]);
     setProducts(p.data || []);
     setSpecies(s.data || []);
@@ -64,11 +64,11 @@ export default function ProductManager() {
     };
 
     if (editingId) {
-      const { error } = await supabase.from('Products').update(payload).eq('id', editingId);
+      const { error } = await supabase.from('products').update(payload).eq('id', editingId);
       if (error) alert("Update Error: " + error.message);
       else setEditingId(null);
     } else {
-      const { error } = await supabase.from('Products').insert([payload]);
+      const { error } = await supabase.from('products').insert([payload]);
       if (error) alert("Insert Error: " + error.message);
     }
 
@@ -94,7 +94,7 @@ export default function ProductManager() {
 
   const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to delete "${name}"?`)) {
-      const { error } = await supabase.from('Products').delete().eq('id', id);
+      const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) {
         if (error.code === '23503') alert(`Cannot delete "${name}": Linked to Inventory history.`);
         else alert("Error: " + error.message);
@@ -107,7 +107,7 @@ export default function ProductManager() {
   const labelStyle = { fontWeight: 'bold', display: 'block', marginBottom: '5px', fontSize: '13px' };
   const thStyle = { padding: '10px', borderBottom: '2px solid #dee2e6', fontSize: '12px', backgroundColor: '#f8f9fa', whiteSpace: 'nowrap' };
   const tdStyle = { padding: '10px', borderBottom: '1px solid #eee', fontSize: '12px', whiteSpace: 'nowrap' };
-  
+
   // Animation Style
   const fadeInStyle = {
     animation: 'fadeIn 0.3s ease-in',
@@ -118,20 +118,20 @@ export default function ProductManager() {
       <style>
         {`@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }`}
       </style>
-      
+
       <h2 style={{ borderBottom: '2px solid #007bff', paddingBottom: '10px', marginBottom: '20px' }}>
         {editingId ? `Editing: ${formData.product_name}` : 'Product Catalog Management'}
       </h2>
-      
+
       <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '40px', padding: '15px', backgroundColor: '#f9f9f9', borderRadius: '8px' }}>
         <div>
           <label style={labelStyle}>Product Name*</label>
-          <input required style={inputStyle} value={formData.product_name} onChange={e => setFormData({...formData, product_name: e.target.value})} />
+          <input required style={inputStyle} value={formData.product_name} onChange={e => setFormData({ ...formData, product_name: e.target.value })} />
         </div>
-        
+
         <div>
           <label style={labelStyle}>Unit Type</label>
-          <select style={inputStyle} value={formData.unit_type} onChange={e => setFormData({...formData, unit_type: e.target.value})}>
+          <select style={inputStyle} value={formData.unit_type} onChange={e => setFormData({ ...formData, unit_type: e.target.value })}>
             <option value="Bd Ft">Bd Ft</option>
             <option value="Each">Each</option>
           </select>
@@ -141,21 +141,21 @@ export default function ProductManager() {
         {formData.unit_type === 'Bd Ft' && (
           <div style={fadeInStyle}>
             <label style={labelStyle}>Thickness</label>
-            <input type="number" step="0.01" style={inputStyle} value={formData.thickness} onChange={e => setFormData({...formData, thickness: e.target.value})} />
+            <input type="number" step="0.01" style={inputStyle} value={formData.thickness} onChange={e => setFormData({ ...formData, thickness: e.target.value })} />
           </div>
         )}
 
         <div>
           <label style={labelStyle}>Species</label>
-          <select style={inputStyle} value={formData.species_id} onChange={e => setFormData({...formData, species_id: e.target.value})}>
+          <select style={inputStyle} value={formData.species_id} onChange={e => setFormData({ ...formData, species_id: e.target.value })}>
             <option value="">-- None --</option>
             {species.map(s => <option key={s.id} value={s.id}>{s.species_name}</option>)}
           </select>
         </div>
-        
+
         <div>
           <label style={labelStyle}>Group</label>
-          <select style={inputStyle} value={formData.group_id} onChange={e => setFormData({...formData, group_id: e.target.value})}>
+          <select style={inputStyle} value={formData.group_id} onChange={e => setFormData({ ...formData, group_id: e.target.value })}>
             <option value="">-- None --</option>
             {groups.map(g => <option key={g.id} value={g.id}>{g.group_name}</option>)}
           </select>
@@ -165,39 +165,39 @@ export default function ProductManager() {
         {formData.unit_type === 'Each' && (
           <div style={fadeInStyle}>
             <label style={labelStyle}>Unit Boardfeet</label>
-            <input type="number" step="0.01" style={inputStyle} value={formData.unit_boardfeet} onChange={e => setFormData({...formData, unit_boardfeet: e.target.value})} />
+            <input type="number" step="0.01" style={inputStyle} value={formData.unit_boardfeet} onChange={e => setFormData({ ...formData, unit_boardfeet: e.target.value })} />
           </div>
         )}
 
         <div>
           <label style={labelStyle}>Default Length</label>
-          <input type="number" step="0.01" style={inputStyle} value={formData.default_length} onChange={e => setFormData({...formData, default_length: e.target.value})} />
+          <input type="number" step="0.01" style={inputStyle} value={formData.default_length} onChange={e => setFormData({ ...formData, default_length: e.target.value })} />
         </div>
         {formData.unit_type !== 'Bd Ft' && (
           <div style={fadeInStyle}>
             <label style={labelStyle}>Default Quantity</label>
-            <input type="number" style={inputStyle} value={formData.default_quantity} onChange={e => setFormData({...formData, default_quantity: e.target.value})} />
+            <input type="number" style={inputStyle} value={formData.default_quantity} onChange={e => setFormData({ ...formData, default_quantity: e.target.value })} />
           </div>
         )}
         <div>
           <label style={labelStyle}>Product Value ($)</label>
-          <input type="number" step="0.01" style={inputStyle} value={formData.unit_product_value} onChange={e => setFormData({...formData, unit_product_value: e.target.value})} />
+          <input type="number" step="0.01" style={inputStyle} value={formData.unit_product_value} onChange={e => setFormData({ ...formData, unit_product_value: e.target.value })} />
         </div>
         <div>
           <label style={labelStyle}>Inv Value ($)</label>
-          <input type="number" step="0.01" style={inputStyle} value={formData.unit_inv_value} onChange={e => setFormData({...formData, unit_inv_value: e.target.value})} />
+          <input type="number" step="0.01" style={inputStyle} value={formData.unit_inv_value} onChange={e => setFormData({ ...formData, unit_inv_value: e.target.value })} />
         </div>
         <div>
           <label style={labelStyle}>Account #</label>
-          <input type="number" style={inputStyle} value={formData.account} onChange={e => setFormData({...formData, account: e.target.value})} />
+          <input type="number" style={inputStyle} value={formData.account} onChange={e => setFormData({ ...formData, account: e.target.value })} />
         </div>
         <div>
           <label style={labelStyle}>Account Name</label>
-          <input style={inputStyle} value={formData.account_product} onChange={e => setFormData({...formData, account_product: e.target.value})} />
+          <input style={inputStyle} value={formData.account_product} onChange={e => setFormData({ ...formData, account_product: e.target.value })} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '25px' }}>
-          <input type="checkbox" id="menu_show" checked={formData.menu_show} onChange={e => setFormData({...formData, menu_show: e.target.checked})} />
-          <label htmlFor="menu_show" style={{fontWeight:'bold', fontSize: '13px'}}>Show in Menus</label>
+          <input type="checkbox" id="menu_show" checked={formData.menu_show} onChange={e => setFormData({ ...formData, menu_show: e.target.checked })} />
+          <label htmlFor="menu_show" style={{ fontWeight: 'bold', fontSize: '13px' }}>Show in Menus</label>
         </div>
 
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -205,7 +205,7 @@ export default function ProductManager() {
             {editingId ? 'Save Changes' : 'Add Product'}
           </button>
           {editingId && (
-            <button type="button" onClick={() => {setEditingId(null); setFormData(initialForm);}} style={{ padding: '10px 20px', borderRadius: '4px', border: '1px solid #ccc' }}>
+            <button type="button" onClick={() => { setEditingId(null); setFormData(initialForm); }} style={{ padding: '10px 20px', borderRadius: '4px', border: '1px solid #ccc' }}>
               Cancel
             </button>
           )}
@@ -236,7 +236,7 @@ export default function ProductManager() {
           <tbody>
             {products.map(p => (
               <tr key={p.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{...tdStyle, fontWeight: 'bold'}}>{p.product_name}</td>
+                <td style={{ ...tdStyle, fontWeight: 'bold' }}>{p.product_name}</td>
                 <td style={tdStyle}>{p.unit_type}</td>
                 <td style={tdStyle}>{p.thickness}"</td>
                 <td style={tdStyle}>{p.unit_boardfeet || '-'}</td>

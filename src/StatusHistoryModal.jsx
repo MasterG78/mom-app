@@ -21,7 +21,7 @@ export default function StatusHistoryModal({ inventoryId, tag, onClose }) {
       .order('updated_at', { ascending: false });
 
     const statusReq = supabase
-      .from('StatusList')
+      .from('status_list')
       .select('id, status_name')
       .order('id');
 
@@ -47,7 +47,7 @@ export default function StatusHistoryModal({ inventoryId, tag, onClose }) {
     const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase
-      .from('StatusChanges')
+      .from('status_changes')
       .insert([
         {
           inventory_id: inventoryId,
@@ -78,20 +78,20 @@ export default function StatusHistoryModal({ inventoryId, tag, onClose }) {
     <div style={modalStyle} onClick={onClose}>
       <div style={contentStyle} onClick={(e) => e.stopPropagation()}>
         <h3>History for Tag #{tag}</h3>
-        
+
         <div style={{ backgroundColor: '#f1f3f5', padding: '15px', borderRadius: '6px', marginBottom: '20px', border: '1px solid #dee2e6' }}>
           <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Update Status:</label>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <select 
-              value={newStatusId} 
+            <select
+              value={newStatusId}
               onChange={(e) => setNewStatusId(e.target.value)}
               style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
             >
               <option value="">-- Choose New Status --</option>
               {statuses.map(s => <option key={s.id} value={s.id}>{s.status_name}</option>)}
             </select>
-            <button 
-              onClick={handleUpdateStatus} 
+            <button
+              onClick={handleUpdateStatus}
               disabled={updating || !newStatusId}
               style={{ padding: '8px 15px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
@@ -100,7 +100,7 @@ export default function StatusHistoryModal({ inventoryId, tag, onClose }) {
           </div>
           <div style={{ marginTop: '10px' }}>
             <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Notes (Optional):</label>
-            <input 
+            <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}

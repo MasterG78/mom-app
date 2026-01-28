@@ -7,7 +7,7 @@ export default function InventoryReport() {
   const [statusOptions, setStatusOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  
+
   // --- Filters ---
   const [sortBy, setSortBy] = useState('product');
   const [lineFilter, setLineFilter] = useState('All');
@@ -22,14 +22,14 @@ export default function InventoryReport() {
 
       // 1. Fetch Status Options
       const { data: statusList } = await supabase
-        .from('StatusList')
+        .from('status_list')
         .select('status_name')
         .order('status_name');
       setStatusOptions(statusList || []);
 
       // 2. Fetch the Report View
       const { data, error } = await supabase
-        .from('inventory_report_view') 
+        .from('inventory_report_view')
         .select('*')
         .order('produced', { ascending: false });
 
@@ -46,7 +46,7 @@ export default function InventoryReport() {
 
   const handleRowClick = (entry) => {
     // Don't open modal for non-data rows
-    if (entry.isSubtotal || entry.isGrandTotal) return; 
+    if (entry.isSubtotal || entry.isGrandTotal) return;
     setSelectedEntry(entry);
   };
 
@@ -109,10 +109,10 @@ export default function InventoryReport() {
     // 4. Sort & Subtotal Logic
     if (sortBy === 'product') {
       data.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
-      
+
       const result = [];
       let currentProduct = null;
-      
+
       // Accumulators for Subtotals
       let pSubVal = 0, pSubBf = 0, pSubQty = 0;
       // Accumulators for Grand Totals
@@ -125,12 +125,12 @@ export default function InventoryReport() {
 
         // If product changes, push the subtotal row
         if (currentProduct && item.product_name !== currentProduct) {
-          result.push({ 
-            isSubtotal: true, 
-            label: `${currentProduct} Subtotal`, 
-            value: pSubVal, 
+          result.push({
+            isSubtotal: true,
+            label: `${currentProduct} Subtotal`,
+            value: pSubVal,
             bf: pSubBf,
-            qty: pSubQty 
+            qty: pSubQty
           });
           // Reset Subtotals
           pSubVal = 0; pSubBf = 0; pSubQty = 0;
@@ -138,24 +138,24 @@ export default function InventoryReport() {
 
         result.push(item);
         currentProduct = item.product_name;
-        
+
         // Add to totals
         pSubVal += val; pSubBf += bf; pSubQty += qty;
         gTotalVal += val; gTotalBf += bf; gTotalQty += qty;
 
         // If last item, push final subtotal and Grand Total
         if (index === data.length - 1) {
-          result.push({ 
-            isSubtotal: true, 
-            label: `${currentProduct} Subtotal`, 
-            value: pSubVal, 
+          result.push({
+            isSubtotal: true,
+            label: `${currentProduct} Subtotal`,
+            value: pSubVal,
             bf: pSubBf,
-            qty: pSubQty 
+            qty: pSubQty
           });
-          result.push({ 
-            isGrandTotal: true, 
-            label: 'GRAND TOTAL', 
-            value: gTotalVal, 
+          result.push({
+            isGrandTotal: true,
+            label: 'GRAND TOTAL',
+            value: gTotalVal,
             bf: gTotalBf,
             qty: gTotalQty
           });
@@ -183,11 +183,11 @@ export default function InventoryReport() {
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff' }}>
       <style>{reportStyles}</style>
-      
+
       <div className="no-print" style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
         <h2 style={{ marginBottom: '15px' }}>Inventory Evaluation Report</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
-          
+
           <div className="filter-group">
             <label className="filter-label">Line</label>
             <select value={lineFilter} onChange={(e) => setLineFilter(e.target.value)} style={{ padding: '5px' }}>
@@ -250,6 +250,7 @@ export default function InventoryReport() {
         <thead>
           <tr>
             <th>Tag #</th>
+            <th>Invoice #</th>
             <th>Date</th>
             <th>Line</th>
             <th>Product Name</th>
@@ -265,7 +266,7 @@ export default function InventoryReport() {
             // --- Grand Total Row ---
             if (row.isGrandTotal) return (
               <tr key="grand" className="grand-total-row">
-                <td colSpan="5" style={{ textAlign: 'right' }}>{row.label}</td>
+                <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
                 <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -274,7 +275,7 @@ export default function InventoryReport() {
             // --- Subtotal Row ---
             if (row.isSubtotal) return (
               <tr key={`sub-${idx}`} className="subtotal-row">
-                <td colSpan="5" style={{ textAlign: 'right' }}>{row.label}</td>
+                <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
                 <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -282,15 +283,16 @@ export default function InventoryReport() {
             );
             // --- Standard Data Row ---
             return (
-              <tr 
-                key={row.id} 
+              <tr
+                key={row.id}
                 onClick={() => handleRowClick(row)}
-                style={{ 
+                style={{
                   backgroundColor: idx % 2 === 0 ? 'transparent' : '#fcfcfc',
                   cursor: 'pointer'
                 }}
               >
                 <td>{row.tag}</td>
+                <td>{row.invoice_id || '-'}</td>
                 <td>{new Date(row.produced).toLocaleDateString()}</td>
                 <td>{row.line}</td>
                 <td>{row.product_name}</td>
@@ -302,7 +304,7 @@ export default function InventoryReport() {
               </tr>
             );
           }) : (
-             <tr><td colSpan="8" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
+            <tr><td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
           )}
         </tbody>
       </table>
