@@ -1,117 +1,88 @@
-| markdown_report                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ## Table: inventory
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int4` | NO | - |
-| **produced** | `timestamptz` | NO | `now()` |
-| **tag** | `int4` | NO | - |
-| **product_id** | `int8` | YES | - |
-| **species_id** | `int8` | YES | - |
-| **boardfeet** | `numeric` | YES | - |
-| **quantity** | `int2` | YES | - |
-| **inventory_value** | `numeric` | YES | - |
-| **sales_value** | `numeric` | YES | - |
-| **invoice_id** | `int4` | YES | - |
-| **line** | `varchar` | YES | - |
-| **length** | `numeric` | YES | - |
-| **width** | `numeric` | YES | - |
-| **rows** | `int2` | YES | - |
-| **note** | `text` | YES | - |
-| **weight** | `numeric` | YES | - |
-| **tagger** | `uuid` | NO | `auth.uid()` |
- |
-| ## Table: products
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | NO | - |
-| **created_at** | `timestamptz` | NO | `now()` |
-| **product_name** | `varchar` | NO | - |
-| **unit_type** | `varchar` | NO | - |
-| **unit_product_value** | `numeric` | NO | - |
-| **unit_inv_value** | `numeric` | NO | - |
-| **unit_boardfeet** | `numeric` | YES | - |
-| **default_length** | `numeric` | YES | - |
-| **default_quantity** | `numeric` | YES | - |
-| **menu_show** | `bool` | YES | `true` |
-| **species_id** | `int8` | YES | - |
-| **group_id** | `int8` | YES | - |
-| **account** | `int2` | YES | - |
-| **account_product** | `varchar` | YES | - |
-| **thickness** | `numeric` | NO | `1.00` |
-          |
-| ## Table: species
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | NO | - |
-| **species_name** | `varchar` | NO | - |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ## Table: species_groups
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | NO | - |
-| **group_name** | `varchar` | YES | - |
-| **species_id** | `int2` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ## Table: status_changes
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | NO | - |
-| **created_at** | `timestamptz` | NO | `now()` |
-| **inventory_id** | `int8` | NO | - |
-| **status_id** | `int8` | NO | - |
-| **updated_by** | `uuid` | NO | - |
-| **updated_at** | `timestamptz` | NO | `now()` |
-| **notes** | `text` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                                         |
-| ## Table: StatusList
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | NO | - |
-| **status_name** | `varchar` | NO | - |
-| **status_description** | `varchar` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ## Table: inventory_report_view
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int4` | YES | - |
-| **tag** | `int4` | YES | - |
-| **line** | `varchar` | YES | - |
-| **produced** | `timestamptz` | YES | - |
-| **product_name** | `varchar` | YES | - |
-| **boardfeet** | `numeric` | YES | - |
-| **quantity** | `int2` | YES | - |
-| **current_status** | `varchar` | YES | - |
-| **total_value** | `numeric` | YES | - |
-                                                                                                                                                                                                                                                                                          |
-| ## Table: inventory_view
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int4` | YES | - |
-| **tag** | `int4` | YES | - |
-| **line** | `varchar` | YES | - |
-| **boardfeet** | `numeric` | YES | - |
-| **quantity** | `int2` | YES | - |
-| **produced** | `timestamptz` | YES | - |
-| **product_name** | `varchar` | YES | - |
-| **tagger_name** | `text` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                 |
-| ## Table: profiles
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `uuid` | NO | - |
-| **updated_at** | `timestamptz` | YES | - |
-| **username** | `text` | NO | - |
-| **full_name** | `text` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| ## Table: status_history_view
-| Column | Type | Nullable | Default |
-| :--- | :--- | :--- | :--- |
-| **id** | `int8` | YES | - |
-| **inventory_id** | `int8` | YES | - |
-| **updated_at** | `timestamptz` | YES | - |
-| **notes** | `text` | YES | - |
-| **status_name** | `varchar` | YES | - |
-| **status_description** | `varchar` | YES | - |
-| **updater_name** | `text` | YES | - |
-                                                                                                                                                                                                                                                                                                                                                              |
+| table_name                 | column_name        | data_type                | is_nullable | column_default |
+| -------------------------- | ------------------ | ------------------------ | ----------- | -------------- |
+| inventory                  | id                 | integer                  | NO          | null           |
+| inventory                  | produced           | timestamp with time zone | NO          | now()          |
+| inventory                  | tag                | integer                  | NO          | null           |
+| inventory                  | product_id         | bigint                   | YES         | null           |
+| inventory                  | species_id         | bigint                   | YES         | null           |
+| inventory                  | boardfeet          | numeric                  | YES         | null           |
+| inventory                  | quantity           | smallint                 | YES         | null           |
+| inventory                  | inventory_value    | numeric                  | YES         | null           |
+| inventory                  | sales_value        | numeric                  | YES         | null           |
+| inventory                  | invoice_id         | integer                  | YES         | null           |
+| inventory                  | line               | character varying        | YES         | null           |
+| inventory                  | length             | numeric                  | YES         | null           |
+| inventory                  | width              | numeric                  | YES         | null           |
+| inventory                  | rows               | smallint                 | YES         | null           |
+| inventory                  | note               | text                     | YES         | null           |
+| inventory                  | weight             | numeric                  | YES         | null           |
+| inventory                  | tagger             | uuid                     | NO          | auth.uid()     |
+| inventory_report_view      | id                 | integer                  | YES         | null           |
+| inventory_report_view      | tag                | integer                  | YES         | null           |
+| inventory_report_view      | invoice_id         | text                     | YES         | null           |
+| inventory_report_view      | line               | character varying        | YES         | null           |
+| inventory_report_view      | produced           | timestamp with time zone | YES         | null           |
+| inventory_report_view      | product_name       | character varying        | YES         | null           |
+| inventory_report_view      | boardfeet          | numeric                  | YES         | null           |
+| inventory_report_view      | quantity           | smallint                 | YES         | null           |
+| inventory_report_view      | current_status     | character varying        | YES         | null           |
+| inventory_report_view      | total_value        | numeric                  | YES         | null           |
+| inventory_tag_sales_report | tag                | integer                  | YES         | null           |
+| inventory_tag_sales_report | product_name       | character varying        | YES         | null           |
+| inventory_tag_sales_report | item_sale_price    | numeric                  | YES         | null           |
+| inventory_tag_sales_report | qbo_invoice_number | text                     | YES         | null           |
+| inventory_tag_sales_report | customer_name      | text                     | YES         | null           |
+| inventory_tag_sales_report | sale_date          | timestamp with time zone | YES         | null           |
+| inventory_view             | id                 | integer                  | YES         | null           |
+| inventory_view             | tag                | integer                  | YES         | null           |
+| inventory_view             | line               | character varying        | YES         | null           |
+| inventory_view             | boardfeet          | numeric                  | YES         | null           |
+| inventory_view             | quantity           | smallint                 | YES         | null           |
+| inventory_view             | produced           | timestamp with time zone | YES         | null           |
+| inventory_view             | product_name       | character varying        | YES         | null           |
+| inventory_view             | tagger_name        | text                     | YES         | null           |
+| products                   | id                 | bigint                   | NO          | null           |
+| products                   | created_at         | timestamp with time zone | NO          | now()          |
+| products                   | product_name       | character varying        | NO          | null           |
+| products                   | unit_type          | character varying        | NO          | null           |
+| products                   | unit_product_value | numeric                  | NO          | null           |
+| products                   | unit_inv_value     | numeric                  | NO          | null           |
+| products                   | unit_boardfeet     | numeric                  | YES         | null           |
+| products                   | default_length     | numeric                  | YES         | null           |
+| products                   | default_quantity   | numeric                  | YES         | null           |
+| products                   | menu_show          | boolean                  | YES         | true           |
+| products                   | species_id         | bigint                   | YES         | null           |
+| products                   | group_id           | bigint                   | YES         | null           |
+| products                   | account            | smallint                 | YES         | null           |
+| products                   | account_product    | character varying        | YES         | null           |
+| products                   | thickness          | numeric                  | NO          | 1.00           |
+| profiles                   | id                 | uuid                     | NO          | null           |
+| profiles                   | updated_at         | timestamp with time zone | YES         | null           |
+| profiles                   | username           | text                     | NO          | null           |
+| profiles                   | full_name          | text                     | YES         | null           |
+| qbo_invoices               | id                 | bigint                   | NO          | null           |
+| qbo_invoices               | created_at         | timestamp with time zone | NO          | now()          |
+| qbo_invoices               | qbo_id             | text                     | YES         | null           |
+| qbo_invoices               | raw_data           | jsonb                    | YES         | null           |
+| species                    | id                 | bigint                   | NO          | null           |
+| species                    | species_name       | character varying        | NO          | null           |
+| species_groups             | id                 | bigint                   | NO          | null           |
+| species_groups             | group_name         | character varying        | YES         | null           |
+| species_groups             | species_id         | smallint                 | YES         | null           |
+| status_changes             | id                 | bigint                   | NO          | null           |
+| status_changes             | created_at         | timestamp with time zone | NO          | now()          |
+| status_changes             | inventory_id       | bigint                   | NO          | null           |
+| status_changes             | status_id          | bigint                   | NO          | null           |
+| status_changes             | updated_by         | uuid                     | NO          | null           |
+| status_changes             | updated_at         | timestamp with time zone | NO          | now()          |
+| status_changes             | notes              | text                     | YES         | null           |
+| status_history_view        | id                 | bigint                   | YES         | null           |
+| status_history_view        | inventory_id       | bigint                   | YES         | null           |
+| status_history_view        | updated_at         | timestamp with time zone | YES         | null           |
+| status_history_view        | notes              | text                     | YES         | null           |
+| status_history_view        | status_name        | character varying        | YES         | null           |
+| status_history_view        | status_description | character varying        | YES         | null           |
+| status_history_view        | updater_name       | text                     | YES         | null           |
+| status_list                | id                 | bigint                   | NO          | null           |
+| status_list                | status_name        | character varying        | NO          | null           |
+| status_list                | status_description | character varying        | YES         | null           |

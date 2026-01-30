@@ -114,14 +114,15 @@ export default function InventoryReport() {
       let currentProduct = null;
 
       // Accumulators for Subtotals
-      let pSubVal = 0, pSubBf = 0, pSubQty = 0;
+      let pSubVal = 0, pSubBf = 0, pSubQty = 0, pSubPrice = 0;
       // Accumulators for Grand Totals
-      let gTotalVal = 0, gTotalBf = 0, gTotalQty = 0;
+      let gTotalVal = 0, gTotalBf = 0, gTotalQty = 0, gTotalPrice = 0;
 
       data.forEach((item, index) => {
         const val = parseFloat(item.total_value) || 0;
         const bf = parseFloat(item.boardfeet) || 0;
         const qty = parseFloat(item.quantity) || 0;
+        const price = parseFloat(item.sales_value) || 0;
 
         // If product changes, push the subtotal row
         if (currentProduct && item.product_name !== currentProduct) {
@@ -130,18 +131,19 @@ export default function InventoryReport() {
             label: `${currentProduct} Subtotal`,
             value: pSubVal,
             bf: pSubBf,
-            qty: pSubQty
+            qty: pSubQty,
+            price: pSubPrice
           });
           // Reset Subtotals
-          pSubVal = 0; pSubBf = 0; pSubQty = 0;
+          pSubVal = 0; pSubBf = 0; pSubQty = 0; pSubPrice = 0;
         }
 
         result.push(item);
         currentProduct = item.product_name;
 
         // Add to totals
-        pSubVal += val; pSubBf += bf; pSubQty += qty;
-        gTotalVal += val; gTotalBf += bf; gTotalQty += qty;
+        pSubVal += val; pSubBf += bf; pSubQty += qty; pSubPrice += price;
+        gTotalVal += val; gTotalBf += bf; gTotalQty += qty; gTotalPrice += price;
 
         // If last item, push final subtotal and Grand Total
         if (index === data.length - 1) {
@@ -150,14 +152,16 @@ export default function InventoryReport() {
             label: `${currentProduct} Subtotal`,
             value: pSubVal,
             bf: pSubBf,
-            qty: pSubQty
+            qty: pSubQty,
+            price: pSubPrice
           });
           result.push({
             isGrandTotal: true,
             label: 'GRAND TOTAL',
             value: gTotalVal,
             bf: gTotalBf,
-            qty: gTotalQty
+            qty: gTotalQty,
+            price: gTotalPrice
           });
         }
       });
@@ -258,6 +262,7 @@ export default function InventoryReport() {
             <th>Status</th>
             <th style={{ textAlign: 'right' }}>Qty (Pcs)</th>
             <th style={{ textAlign: 'right' }}>Board Feet</th>
+            <th style={{ textAlign: 'right' }}>Price ($)</th>
             <th style={{ textAlign: 'right' }}>Inv. Value ($)</th>
           </tr>
         </thead>
@@ -269,6 +274,7 @@ export default function InventoryReport() {
                 <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
                 <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
+                <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             );
@@ -278,6 +284,7 @@ export default function InventoryReport() {
                 <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
                 <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
+                <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             );
@@ -300,11 +307,12 @@ export default function InventoryReport() {
                 {/* Two Columns: Only display the value if it exists */}
                 <td style={{ textAlign: 'right' }}>{row.quantity ? row.quantity.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.boardfeet ? row.boardfeet.toLocaleString() : '-'}</td>
+                <td style={{ textAlign: 'right' }}>{row.sales_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>{row.total_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             );
           }) : (
-            <tr><td colSpan="9" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
+            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
           )}
         </tbody>
       </table>

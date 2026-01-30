@@ -52,7 +52,8 @@ SELECT
     i.boardfeet,
     i.quantity,
     sl.status_name AS current_status,
-    i.inventory_value AS total_value
+    i.inventory_value AS total_value,
+    i.sales_value
 FROM
     inventory i
 LEFT JOIN

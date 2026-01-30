@@ -57,7 +57,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
 
       let query = supabase
         .from('products')
-        .select('id, product_name, unit_type, default_quantity, thickness, species_id, group_id, unit_inv_value, menu_show');
+        .select('id, product_name, unit_type, default_quantity, thickness, species_id, group_id, unit_inv_value, unit_product_value, menu_show');
 
       if (!showAll) query = query.eq('menu_show', true);
 
@@ -145,6 +145,9 @@ export default function InventoryEntry({ session, onBundleCreated }) {
       const unitCost = parseFloat(selectedProduct.unit_inv_value) || 0;
       const snapshotValue = isBoardFeetProduct ? (finalBoardFeet * unitCost) : (qtyValue * unitCost);
 
+      const unitSalesPrice = parseFloat(selectedProduct.unit_product_value) || 0;
+      const predictedSalesValue = isBoardFeetProduct ? (finalBoardFeet * unitSalesPrice) : (qtyValue * unitSalesPrice);
+
       const { data, error } = await supabase
         .from('inventory')
         .insert([{
@@ -159,7 +162,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           rows: formData.rows || null,
           note: formData.note,
           produced: new Date(),
-          sales_value: 0.00
+          sales_value: predictedSalesValue // Predicted Price
         }])
         .select()
 
