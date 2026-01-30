@@ -43,7 +43,9 @@ export default function InventoryEntry({ session, onBundleCreated }) {
     length: '',
     width: '',
     rows: '',
-    note: ''
+    rows: '',
+    note: '',
+    customer_name: ''
   })
 
   // 1. Initial Data Fetch
@@ -57,7 +59,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
 
       let query = supabase
         .from('products')
-        .select('id, product_name, unit_type, default_quantity, thickness, species_id, group_id, unit_inv_value, unit_product_value, menu_show');
+        .select('id, product_name, unit_type, default_quantity, thickness, species_id, group_id, unit_inv_value, unit_product_value, is_special_order, menu_show');
 
       if (!showAll) query = query.eq('menu_show', true);
 
@@ -159,16 +161,18 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           inventory_value: snapshotValue, // snapshot locked
           length: formData.length || null,
           width: formData.width || null,
+          width: formData.width || null,
           rows: formData.rows || null,
           note: formData.note,
           produced: new Date(),
-          sales_value: predictedSalesValue // Predicted Price
+          sales_value: predictedSalesValue, // Predicted Price
+          customer_name: formData.customer_name || null // Special Order Customer
         }])
         .select()
 
       if (error) throw error
       alert(`Success! Bundle Created. Tag #: ${data[0].tag}`)
-      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '' })
+      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '' })
       setSelectedProduct(null);
       if (onBundleCreated) onBundleCreated();
     } catch (error) {
@@ -241,9 +245,26 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           {selectedProduct?.group_id && filteredSpecies.length === 0 && (
             <p style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
               Warning: No species found assigned to this group.
+              Warning: No species found assigned to this group.
             </p>
           )}
         </div>
+
+        {/* Special Order Customer Field */}
+        {selectedProduct && selectedProduct.is_special_order && (
+          <div style={inputGroupStyle}>
+            <label style={labelStyle}>Customer <span style={{ color: 'red' }}>*</span></label>
+            <input
+              name="customer_name"
+              type="text"
+              value={formData.customer_name}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+              placeholder="Enter Customer Name"
+            />
+          </div>
+        )}
 
         {selectedProduct && (
           <div style={formGridStyle}>

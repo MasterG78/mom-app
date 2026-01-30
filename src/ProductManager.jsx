@@ -21,7 +21,9 @@ export default function ProductManager() {
     group_id: '',
     account: '',
     account_product: '',
-    menu_show: true
+    account_product: '',
+    menu_show: true,
+    is_special_order: false
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -60,7 +62,10 @@ export default function ProductManager() {
       group_id: formData.group_id ? parseInt(formData.group_id) : null,
       account: formData.account ? parseInt(formData.account) : null,
       account_product: formData.account_product || null,
-      menu_show: formData.menu_show
+      account: formData.account ? parseInt(formData.account) : null,
+      account_product: formData.account_product || null,
+      menu_show: formData.menu_show,
+      is_special_order: formData.is_special_order
     };
 
     if (editingId) {
@@ -87,7 +92,10 @@ export default function ProductManager() {
       default_length: p.default_length || '',
       default_quantity: p.default_quantity || '',
       account: p.account || '',
-      account_product: p.account_product || ''
+      default_quantity: p.default_quantity || '',
+      account: p.account || '',
+      account_product: p.account_product || '',
+      is_special_order: p.is_special_order || false
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -200,6 +208,11 @@ export default function ProductManager() {
           <label htmlFor="menu_show" style={{ fontWeight: 'bold', fontSize: '13px' }}>Show in Menus</label>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '25px' }}>
+          <input type="checkbox" id="is_special_order" checked={formData.is_special_order} onChange={e => setFormData({ ...formData, is_special_order: e.target.checked })} />
+          <label htmlFor="is_special_order" style={{ fontWeight: 'bold', fontSize: '13px', color: '#dc3545' }}>Special Order Item</label>
+        </div>
+
         <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginTop: '10px' }}>
           <button type="submit" disabled={loading} style={{ padding: '10px 30px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
             {editingId ? 'Save Changes' : 'Add Product'}
@@ -228,6 +241,7 @@ export default function ProductManager() {
               <th style={thStyle}>Inv Value</th>
               <th style={thStyle}>Account</th>
               <th style={thStyle}>Acc Name</th>
+              <th style={thStyle}>Special?</th>
               <th style={thStyle}>Visible</th>
               <th style={thStyle}>Created</th>
               <th style={thStyle}>Actions</th>
@@ -246,6 +260,7 @@ export default function ProductManager() {
                 <td style={tdStyle}>${p.unit_inv_value?.toFixed(2)}</td>
                 <td style={tdStyle}>{p.account || '-'}</td>
                 <td style={tdStyle}>{p.account_product || '-'}</td>
+                <td style={tdStyle}>{p.is_special_order ? 'YES' : '-'}</td>
                 <td style={tdStyle}>{p.menu_show ? 'Yes' : 'No'}</td>
                 <td style={tdStyle}>{new Date(p.created_at).toLocaleDateString()}</td>
                 <td style={tdStyle}>

@@ -18,9 +18,14 @@ DECLARE
     inventory_record record;
     sold_status_id int;
     user_id uuid;
+    cust_name text; -- Variable for Customer Name
 BEGIN
     invoice_data := NEW.raw_data;
     line_items := invoice_data->'Line';
+    
+    -- Extract Customer Name safely
+    -- Structure: "CustomerRef": { "value": "123", "name": "John Doe" }
+    cust_name := invoice_data->'CustomerRef'->>'name';
 
     -- Attempt to find the "Sold" status ID (assuming it exists in status_list)
     SELECT id INTO sold_status_id FROM status_list WHERE status_name = 'Sold' LIMIT 1;
@@ -54,7 +59,8 @@ BEGIN
                     UPDATE inventory
                     SET 
                         invoice_id = NEW.id,
-                        sales_value = amount
+                        sales_value = amount,
+                        customer_name = cust_name -- Update Customer Name
                     WHERE id = inventory_record.id;
 
                     -- Insert Status Change if 'Sold' status exists
