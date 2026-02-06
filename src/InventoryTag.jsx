@@ -1,0 +1,99 @@
+import React from 'react';
+import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
+import QRCode from 'qrcode';
+import { useEffect, useState } from 'react';
+
+// Create styles
+const styles = StyleSheet.create({
+    page: {
+        flexDirection: 'column',
+        backgroundColor: '#fff',
+        padding: 4, // Reduced padding to allow maximum space
+    },
+    labelContainer: {
+        width: '100%', // Fill available space (288-8 = 280pt)
+        height: '100%', // Fill available space (144-8 = 136pt)
+        border: '1px solid #000',
+        display: 'flex',
+        flexDirection: 'row',
+        padding: 4,
+    },
+    leftCol: {
+        width: '65%',
+        paddingRight: 5,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+    },
+    rightCol: {
+        width: '35%',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    tagNumber: {
+        fontSize: 28,
+        fontWeight: 'heavy',
+        marginBottom: 5,
+    },
+    productName: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    detailText: {
+        fontSize: 9,
+        marginBottom: 1,
+    },
+    qrCode: {
+        width: 80,
+        height: 80,
+    },
+});
+
+export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    return (
+        <Document>
+            {/* 4 inches wide x 2 inches high. 72 points per inch. 4*72=288, 2*72=144. */}
+            {/* Explicitly defined size order: [Width, Height] */}
+            <Page size={[288, 144]} style={styles.page}>
+                <View style={styles.labelContainer}>
+                    <View style={styles.leftCol}>
+                        <Text style={styles.tagNumber}>{data.tag}</Text>
+                        <Text style={styles.productName}>{data.product_name}</Text>
+                        <Text style={styles.detailText}>{data.species_name || ''}</Text>
+                        <Text style={styles.detailText}>Line: {data.line} | Date: {formatDate(data.produced)}</Text>
+
+                        {/* Conditional Rendering for Dimensions */}
+                        {(data.length || data.width || data.rows) && (
+                            <Text style={styles.detailText}>
+                                Dims: {data.length || '-'} x {data.width || '-'} x {data.rows || '-'}
+                                {data.boardfeet ? ` (${data.boardfeet} BF)` : ''}
+                            </Text>
+                        )}
+
+                        {/* Quantity if not BF */}
+                        {!data.boardfeet && data.quantity && (
+                            <Text style={styles.detailText}>Qty: {data.quantity}</Text>
+                        )}
+
+
+                        {data.note && (
+                            <Text style={{ ...styles.detailText, fontStyle: 'italic', marginTop: 2 }}>
+                                Note: {data.note.substring(0, 30)}
+                            </Text>
+                        )}
+                    </View>
+
+                    <View style={styles.rightCol}>
+                        {qrCodeUrl && <Image src={qrCodeUrl} style={styles.qrCode} />}
+                    </View>
+                </View>
+            </Page>
+        </Document>
+    );
+};

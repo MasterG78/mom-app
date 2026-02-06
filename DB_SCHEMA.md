@@ -17,6 +17,7 @@
 | inventory                  | note               | text                     | YES         | null           |
 | inventory                  | weight             | numeric                  | YES         | null           |
 | inventory                  | tagger             | uuid                     | NO          | auth.uid()     |
+| inventory                  | customer_name      | text                     | YES         | null           |
 | inventory_report_view      | id                 | integer                  | YES         | null           |
 | inventory_report_view      | tag                | integer                  | YES         | null           |
 | inventory_report_view      | invoice_id         | text                     | YES         | null           |
@@ -27,6 +28,8 @@
 | inventory_report_view      | quantity           | smallint                 | YES         | null           |
 | inventory_report_view      | current_status     | character varying        | YES         | null           |
 | inventory_report_view      | total_value        | numeric                  | YES         | null           |
+| inventory_report_view      | sales_value        | numeric                  | YES         | null           |
+| inventory_report_view      | customer_name      | text                     | YES         | null           |
 | inventory_tag_sales_report | tag                | integer                  | YES         | null           |
 | inventory_tag_sales_report | product_name       | character varying        | YES         | null           |
 | inventory_tag_sales_report | item_sale_price    | numeric                  | YES         | null           |
@@ -56,6 +59,7 @@
 | products                   | account            | smallint                 | YES         | null           |
 | products                   | account_product    | character varying        | YES         | null           |
 | products                   | thickness          | numeric                  | NO          | 1.00           |
+| products                   | is_special_order   | boolean                  | YES         | false          |
 | profiles                   | id                 | uuid                     | NO          | null           |
 | profiles                   | updated_at         | timestamp with time zone | YES         | null           |
 | profiles                   | username           | text                     | NO          | null           |

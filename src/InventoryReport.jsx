@@ -1,12 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabaseClient';
 import StatusHistoryModal from './StatusHistoryModal';
+import { pdf } from '@react-pdf/renderer';
+import { InventoryTagPDF } from './InventoryTag';
+import QRCode from 'qrcode';
+import { saveAs } from 'file-saver';
 
 export default function InventoryReport() {
   const [reportData, setReportData] = useState([]);
   const [statusOptions, setStatusOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState(null);
+  const [generatingPdfId, setGeneratingPdfId] = useState(null);
 
   // --- Filters ---
   const [sortBy, setSortBy] = useState('product');
@@ -54,6 +59,27 @@ export default function InventoryReport() {
     setSelectedEntry(null);
   };
 
+  const handlePrintTag = async (row, e) => {
+    e.stopPropagation();
+    try {
+      setGeneratingPdfId(row.id);
+
+      // 1. Generate QR Code Data URI
+      const qrText = `Tag: ${row.tag}\n${row.product_name}\nDim: ${row.length || '-'}x${row.width || '-'}x${row.rows || '-'}`;
+      const qrCodeUrl = await QRCode.toDataURL(qrText);
+
+      // 2. Generate PDF Blob
+      const blob = await pdf(<InventoryTagPDF data={row} qrCodeUrl={qrCodeUrl} />).toBlob();
+
+      // 3. Save File
+      saveAs(blob, `tag_${row.tag}.pdf`);
+    } catch (error) {
+      console.error('Error generating tag:', error);
+      alert('Failed to generate tag PDF.');
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
 
   const processedReport = useMemo(() => {
     let data = [...reportData];
@@ -264,6 +290,7 @@ export default function InventoryReport() {
             <th style={{ textAlign: 'right' }}>Board Feet</th>
             <th style={{ textAlign: 'right' }}>Price ($)</th>
             <th style={{ textAlign: 'right' }}>Inv. Value ($)</th>
+            <th className="no-print" style={{ width: '60px' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -276,6 +303,7 @@ export default function InventoryReport() {
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="no-print"></td>
               </tr>
             );
             // --- Subtotal Row ---
@@ -286,6 +314,7 @@ export default function InventoryReport() {
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="no-print"></td>
               </tr>
             );
             // --- Standard Data Row ---
@@ -309,10 +338,28 @@ export default function InventoryReport() {
                 <td style={{ textAlign: 'right' }}>{row.boardfeet ? row.boardfeet.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.sales_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>{row.total_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className='no-print' onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={(e) => handlePrintTag(row, e)}
+                    disabled={generatingPdfId === row.id}
+                    style={{
+                      textDecoration: 'none',
+                      padding: '3px 6px',
+                      color: '#007bff',
+                      border: '1px solid #007bff',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      background: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {generatingPdfId === row.id ? 'Gen...' : 'Print Tag'}
+                  </button>
+                </td>
               </tr>
             );
           }) : (
-            <tr><td colSpan="10" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
+            <tr><td colSpan="11" style={{ textAlign: 'center', padding: '20px' }}>No inventory records found for these filters.</td></tr>
           )}
         </tbody>
       </table>
