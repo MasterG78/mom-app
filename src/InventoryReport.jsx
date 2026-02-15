@@ -27,7 +27,7 @@ export default function InventoryReport() {
 
       // 1. Fetch Status Options
       const { data: statusList } = await supabase
-        .from('status_list')
+        .from('statuses')
         .select('status_name')
         .order('status_name');
       setStatusOptions(statusList || []);

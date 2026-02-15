@@ -32,4 +32,4 @@ LEFT JOIN (
     FROM status_changes
     ORDER BY inventory_id, created_at DESC
 ) latest_status ON i.id = latest_status.inventory_id
-LEFT JOIN status_list s ON latest_status.status_id = s.id;
+LEFT JOIN statuses s ON latest_status.status_id = s.id;

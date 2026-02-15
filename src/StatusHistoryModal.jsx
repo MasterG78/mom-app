@@ -21,7 +21,7 @@ export default function StatusHistoryModal({ inventoryId, tag, onClose }) {
       .order('updated_at', { ascending: false });
 
     const statusReq = supabase
-      .from('status_list')
+      .from('statuses')
       .select('id, status_name')
       .order('id');
 

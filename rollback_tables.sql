@@ -9,4 +9,4 @@ ALTER TABLE "products" RENAME TO "Products";
 ALTER TABLE "species" RENAME TO "Species";
 ALTER TABLE "species_groups" RENAME TO "SpeciesGroups";
 ALTER TABLE "status_changes" RENAME TO "StatusChanges";
-ALTER TABLE "status_list" RENAME TO "StatusList";
+ALTER TABLE "statuses" RENAME TO "StatusList";

@@ -35,7 +35,7 @@ SELECT
 FROM
     status_changes sc
 JOIN
-    status_list sl ON sc.status_id = sl.id
+    statuses sl ON sc.status_id = sl.id
 LEFT JOIN
     profiles pr ON sc.updated_by = pr.id;
 
@@ -67,4 +67,4 @@ LEFT JOIN
         ORDER BY inventory_id, updated_at DESC
     ) latest_status ON i.id = latest_status.inventory_id
 LEFT JOIN
-    status_list sl ON latest_status.status_id = sl.id;
+    statuses sl ON latest_status.status_id = sl.id;

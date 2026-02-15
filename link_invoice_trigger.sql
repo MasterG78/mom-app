@@ -28,7 +28,7 @@ BEGIN
     cust_name := invoice_data->'CustomerRef'->>'name';
 
     -- Attempt to find the "Sold" status ID (assuming it exists in status_list)
-    SELECT id INTO sold_status_id FROM status_list WHERE status_name = 'Sold' LIMIT 1;
+    SELECT id INTO sold_status_id FROM statuses WHERE status_name = 'Sold' LIMIT 1;
     
     -- Iterate through each line item in the invoice
     -- Note: 'Line' can be an object (single item) or array (multiple items) in some JSON structures,
