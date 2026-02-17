@@ -45,7 +45,9 @@ export default function InventoryEntry({ session, onBundleCreated }) {
     rows: '',
     rows: '',
     note: '',
-    customer_name: ''
+    note: '',
+    customer_name: '',
+    tagger: ''
   })
 
   // 1. Initial Data Fetch
@@ -166,13 +168,15 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           note: formData.note,
           produced: new Date(),
           sales_value: predictedSalesValue, // Predicted Price
-          customer_name: formData.customer_name || null // Special Order Customer
+          sales_value: predictedSalesValue, // Predicted Price
+          customer_name: formData.customer_name || null, // Special Order Customer
+          tagger: formData.tagger || null
         }])
         .select()
 
       if (error) throw error
       alert(`Success! Bundle Created. Tag #: ${data[0].tag}`)
-      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '' })
+      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '', tagger: formData.tagger }) // Keep tagger for next entry
       setSelectedProduct(null);
       if (onBundleCreated) onBundleCreated();
     } catch (error) {
@@ -217,6 +221,19 @@ export default function InventoryEntry({ session, onBundleCreated }) {
               <option value="D">Line D</option><option value="P">Line P</option><option value="R">Line R</option>
             </select>
           </div>
+        </div>
+
+        <div style={inputGroupStyle}>
+          <label style={labelStyle}>Tagger (Initials/Name) <span style={{ color: 'red' }}>*</span></label>
+          <input
+            name="tagger"
+            type="text"
+            value={formData.tagger}
+            onChange={handleChange}
+            required
+            style={inputStyle}
+            placeholder="e.g. JD"
+          />
         </div>
 
         {/* Species Selection with Indicator */}

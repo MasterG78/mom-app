@@ -133,6 +133,22 @@ export default function InventoryReport() {
     });
 
     // 4. Sort & Subtotal Logic
+    if (sortBy === 'date') {
+      data.sort((a, b) => {
+        // Sort by Date (Day only) Descending
+        const dateA = new Date(a.produced);
+        dateA.setHours(0, 0, 0, 0);
+        const dateB = new Date(b.produced);
+        dateB.setHours(0, 0, 0, 0);
+
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateB.getTime() - dateA.getTime();
+        }
+        // Secondary sort by Tag (Numeric)
+        return (a.tag || '').toString().localeCompare((b.tag || '').toString(), undefined, { numeric: true });
+      });
+    }
+
     if (sortBy === 'product') {
       data.sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''));
 
