@@ -27,8 +27,23 @@ const styles = StyleSheet.create({
     },
     rightCol: {
         width: '35%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+    },
+    addressBlock: {
+        alignItems: 'flex-end',
+    },
+    addressText: {
+        fontSize: 6.5,
+        textAlign: 'right',
+        lineHeight: 1.3,
+    },
+    qrWrapper: {
         alignItems: 'center',
         justifyContent: 'center',
+        flex: 1,
     },
     tagNumber: {
         fontSize: 28,
@@ -76,10 +91,12 @@ export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
                             </Text>
                         )}
 
-                        {/* Quantity if not BF */}
-                        {!data.boardfeet && data.quantity && (
+                        {/* Qty / BdFt — mutually exclusive, same position */}
+                        {data.boardfeet ? (
+                            <Text style={styles.detailText}>BdFt: {data.boardfeet}</Text>
+                        ) : data.quantity ? (
                             <Text style={styles.detailText}>Qty: {data.quantity}</Text>
-                        )}
+                        ) : null}
 
 
                         {data.note && (
@@ -90,7 +107,14 @@ export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
                     </View>
 
                     <View style={styles.rightCol}>
-                        {qrCodeUrl && <Image src={qrCodeUrl} style={styles.qrCode} />}
+                        <View style={styles.addressBlock}>
+                            <Text style={styles.addressText}>Mountain Oak Mill</Text>
+                            <Text style={styles.addressText}>11343 US-27 E</Text>
+                            <Text style={styles.addressText}>Hamilton, GA  31811</Text>
+                        </View>
+                        <View style={styles.qrWrapper}>
+                            {qrCodeUrl && <Image src={qrCodeUrl} style={styles.qrCode} />}
+                        </View>
                     </View>
                 </View>
             </Page>
