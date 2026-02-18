@@ -196,6 +196,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
       <h2>Add Inventory Bundle</h2>
       <form onSubmit={handleSubmit}>
 
+        {/* Row 1: Product Type | Species */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div style={inputGroupStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
@@ -213,6 +214,39 @@ export default function InventoryEntry({ session, onBundleCreated }) {
             </select>
           </div>
 
+          {/* Species Selection with Indicator */}
+          <div style={inputGroupStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Species</label>
+              {selectedProduct && (
+                <span style={{ fontSize: '11px', color: selectedProduct.group_id ? '#28a745' : '#666', fontStyle: 'italic' }}>
+                  {selectedProduct.group_id ? '✓ Filtered by Group' : 'Showing All Species'}
+                </span>
+              )}
+            </div>
+            <select
+              name="species_id"
+              value={formData.species_id}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+              disabled={!selectedProduct}
+            >
+              <option value="">-- Select Species --</option>
+              {filteredSpecies.map((s) => (
+                <option key={s.id} value={s.id}>{s.species_name}</option>
+              ))}
+            </select>
+            {selectedProduct?.group_id && filteredSpecies.length === 0 && (
+              <p style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
+                Warning: No species found assigned to this group.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Row 2: Production Line | Tagger */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div style={inputGroupStyle}>
             <label style={labelStyle}>Production Line</label>
             <select name="line" value={formData.line} onChange={handleChange} required style={inputStyle}>
@@ -221,51 +255,21 @@ export default function InventoryEntry({ session, onBundleCreated }) {
               <option value="D">Line D</option><option value="P">Line P</option><option value="R">Line R</option>
             </select>
           </div>
-        </div>
 
-        <div style={inputGroupStyle}>
-          <label style={labelStyle}>Tagger (Initials/Name) <span style={{ color: 'red' }}>*</span></label>
-          <input
-            name="tagger"
-            type="text"
-            value={formData.tagger}
-            onChange={handleChange}
-            required
-            style={inputStyle}
-            placeholder="e.g. JD"
-          />
-        </div>
-
-        {/* Species Selection with Indicator */}
-        <div style={inputGroupStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <label style={labelStyle}>Species</label>
-            {selectedProduct && (
-              <span style={{ fontSize: '11px', color: selectedProduct.group_id ? '#28a745' : '#666', fontStyle: 'italic' }}>
-                {selectedProduct.group_id ? '✓ Filtered by Group' : 'Showing All Species'}
-              </span>
-            )}
+          <div style={inputGroupStyle}>
+            <label style={labelStyle}>Tagger (Initials/Name) <span style={{ color: 'red' }}>*</span></label>
+            <input
+              name="tagger"
+              type="text"
+              value={formData.tagger}
+              onChange={handleChange}
+              required
+              style={inputStyle}
+              placeholder="e.g. JD"
+            />
           </div>
-          <select
-            name="species_id"
-            value={formData.species_id}
-            onChange={handleChange}
-            required
-            style={inputStyle}
-            disabled={!selectedProduct}
-          >
-            <option value="">-- Select Species --</option>
-            {filteredSpecies.map((s) => (
-              <option key={s.id} value={s.id}>{s.species_name}</option>
-            ))}
-          </select>
-          {selectedProduct?.group_id && filteredSpecies.length === 0 && (
-            <p style={{ color: 'red', fontSize: '12px', marginTop: '5px' }}>
-              Warning: No species found assigned to this group.
-              Warning: No species found assigned to this group.
-            </p>
-          )}
         </div>
+
 
         {/* Special Order Customer Field */}
         {selectedProduct && selectedProduct.is_special_order && (
