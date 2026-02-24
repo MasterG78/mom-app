@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from './supabaseClient';
+import { startOfWeek, endOfWeek, subWeeks, isWithinInterval, format, parseISO } from 'date-fns';
 
 export default function ProductionReport() {
   const [reportData, setReportData] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // --- Filters ---
   const [lineFilter, setLineFilter] = useState('All');
   const [dateRange, setDateRange] = useState('This Week');
@@ -12,9 +14,10 @@ export default function ProductionReport() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      // 2. Fetch the Report View
+
+      // 1. Fetch the Report View
       const { data, error } = await supabase
-        .from('inventory_report_view') 
+        .from('inventory_report_view')
         .select('*')
         .order('produced', { ascending: false });
 
@@ -24,6 +27,18 @@ export default function ProductionReport() {
       } else {
         setReportData(data || []);
       }
+
+      // 2. Fetch Production Goals
+      const { data: goalsData, error: goalsError } = await supabase
+        .from('production_goals')
+        .select('*');
+
+      if (goalsError) {
+        console.error('Error fetching goals:', goalsError);
+      } else {
+        setGoals(goalsData || []);
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -43,48 +58,49 @@ export default function ProductionReport() {
 
     // 2. Date Range Filter
     const now = new Date();
-    const getStartOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const thisWeekStart = startOfWeek(now, { weekStartsOn: 0 }); // Sunday start
+    const thisWeekEnd = endOfWeek(now, { weekStartsOn: 0 });
+    const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+    const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
 
     data = data.filter(item => {
       if (!item.produced) return false;
       const prodDate = new Date(item.produced);
 
       if (dateRange === 'This Week') {
-        const monday = new Date(now);
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        monday.setDate(diff);
-        return prodDate >= getStartOfDay(monday);
+        return isWithinInterval(prodDate, { start: thisWeekStart, end: thisWeekEnd });
       }
       if (dateRange === 'Last Week') {
-        const lastMonday = new Date(now);
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
-        lastMonday.setDate(diff);
-        const thisMonday = new Date(now);
-        const thisDiff = now.getDate() - day + (day === 0 ? -6 : 1);
-        thisMonday.setDate(thisDiff);
-        return prodDate >= getStartOfDay(lastMonday) && prodDate < getStartOfDay(thisMonday);
+        return isWithinInterval(prodDate, { start: lastWeekStart, end: lastWeekEnd });
       }
-      return true; // Should not happen with the current UI
+      return true;
     });
 
     // 3. Group by Line and then by Day
     const lineSummaries = {};
     let grandTotal = 0;
+    let grandTotalGoal = 0;
 
     data.forEach(item => {
-      const day = new Date(item.produced).toLocaleDateString();
+      const producedDate = new Date(item.produced);
+      const day = format(producedDate, 'MM/dd/yyyy'); // Use format for consistent daily grouping
+      const dow = producedDate.getDay(); // 0=Sunday, 1=Monday...
       const line = item.line || 'Unknown';
       const value = parseFloat(item.total_value) || 0;
 
       if (!lineSummaries[line]) {
-        lineSummaries[line] = { daily: {}, lineTotal: 0 };
+        lineSummaries[line] = { daily: {}, lineTotal: 0, lineGoal: 0 };
       }
       if (!lineSummaries[line].daily[day]) {
-        lineSummaries[line].daily[day] = 0;
+        // Find goal for this line and day of week
+        const matchedGoal = goals.find(g => String(g.line) === String(line) && Number(g.day_of_week) === Number(dow));
+        const goalValue = matchedGoal ? parseFloat(matchedGoal.goal_value) : 0;
+
+        lineSummaries[line].daily[day] = { value: 0, goal: goalValue };
+        lineSummaries[line].lineGoal += goalValue;
+        grandTotalGoal += goalValue;
       }
-      lineSummaries[line].daily[day] += value;
+      lineSummaries[line].daily[day].value += value;
       lineSummaries[line].lineTotal += value;
       grandTotal += value;
     });
@@ -96,21 +112,40 @@ export default function ProductionReport() {
     sortedLines.forEach(line => {
       result.push({ isLineHeader: true, label: `Line ${line}` });
       const lineData = lineSummaries[line];
-      const sortedDays = Object.keys(lineData.daily).sort((a,b) => new Date(b) - new Date(a));
-      
+      const sortedDays = Object.keys(lineData.daily).sort((a, b) => new Date(b) - new Date(a));
+
       sortedDays.forEach(day => {
-        result.push({ isDateRow: true, date: day, value: lineData.daily[day] });
+        const dayData = lineData.daily[day];
+        result.push({
+          isDateRow: true,
+          date: day,
+          value: dayData.value,
+          goal: dayData.goal,
+          diff: dayData.value - dayData.goal
+        });
       });
 
-      result.push({ isLineTotal: true, label: `Line ${line} Total`, value: lineData.lineTotal });
+      result.push({
+        isLineTotal: true,
+        label: `Line ${line} Total`,
+        value: lineData.lineTotal,
+        goal: lineData.lineGoal,
+        diff: lineData.lineTotal - lineData.lineGoal
+      });
     });
-    
+
     if (result.length > 0) {
-      result.push({ isGrandTotal: true, label: 'GRAND TOTAL', value: grandTotal });
+      result.push({
+        isGrandTotal: true,
+        label: 'GRAND TOTAL',
+        value: grandTotal,
+        goal: grandTotalGoal,
+        diff: grandTotal - grandTotalGoal
+      });
     }
 
     return result;
-  }, [reportData, lineFilter, dateRange]);
+  }, [reportData, goals, lineFilter, dateRange]);
 
   const reportStyles = `
     .print-only { display: none; }
@@ -127,34 +162,31 @@ export default function ProductionReport() {
     .grand-total-row { background-color: #e9ecef; font-weight: 900; font-size: 13px; border-top: 2px solid #000; }
     .filter-group { display: flex; flexDirection: column; gap: 2px; }
     .filter-label { font-size: 10px; font-weight: bold; color: #666; text-transform: uppercase; }
+    .text-success { color: #28a745; }
+    .text-danger { color: #dc3545; }
+    .diff-col { font-weight: bold; }
   `;
 
-  if (loading) return <div style={{ padding: '20px' }}>Loading Report View...</div>;
+  if (loading) return <div style={{ padding: '20px' }}>Loading Production Report...</div>;
 
   // Function to get the date range string
   const getDateRangeLabel = () => {
+    const now = new Date();
     if (dateRange === 'This Week') {
-      const now = new Date();
-      const monday = new Date(now);
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-      monday.setDate(diff);
-      const sunday = new Date(monday);
-      sunday.setDate(monday.getDate() + 6);
-      return `For the Week of: ${monday.toLocaleDateString()} - ${sunday.toLocaleDateString()}`;
+      const start = startOfWeek(now, { weekStartsOn: 0 });
+      const end = endOfWeek(now, { weekStartsOn: 0 });
+      return `For the Week of: ${format(start, 'MM/dd/yyyy')} - ${format(end, 'MM/dd/yyyy')}`;
     }
     if (dateRange === 'Last Week') {
-      const now = new Date();
-      const lastMonday = new Date(now);
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7;
-      lastMonday.setDate(diff);
-      const lastSunday = new Date(lastMonday);
-      lastSunday.setDate(lastMonday.getDate() + 6);
-      return `For the Week of: ${lastMonday.toLocaleDateString()} - ${lastSunday.toLocaleDateString()}`;
+      const start = startOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+      const end = endOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+      return `For the Week of: ${format(start, 'MM/dd/yyyy')} - ${format(end, 'MM/dd/yyyy')}`;
     }
     return '';
   }
+
+  const formatCurrency = (val) => val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const getDiffStyle = (diff) => diff >= 0 ? 'text-success' : 'text-danger';
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#fff' }}>
@@ -164,11 +196,11 @@ export default function ProductionReport() {
         <h1>Production Report</h1>
         <p>{getDateRangeLabel()}</p>
       </div>
-      
+
       <div className="no-print" style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px' }}>
         <h2 style={{ marginBottom: '15px' }}>Production Report</h2>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end' }}>
-          
+
           <div className="filter-group">
             <label className="filter-label">Line</label>
             <select value={lineFilter} onChange={(e) => setLineFilter(e.target.value)} style={{ padding: '5px' }}>
@@ -196,36 +228,50 @@ export default function ProductionReport() {
           <tr>
             <th>Line / Date</th>
             <th style={{ textAlign: 'right' }}>Total Value ($)</th>
+            <th style={{ textAlign: 'right' }}>Goal ($)</th>
+            <th style={{ textAlign: 'right' }}>Difference ($)</th>
           </tr>
         </thead>
         <tbody>
           {processedReport.length > 0 ? processedReport.map((row, idx) => {
             if (row.isLineHeader) return (
               <tr key={idx} style={{ backgroundColor: '#e9ecef', fontWeight: 'bold' }}>
-                <td colSpan="2">{row.label}</td>
+                <td colSpan="4">{row.label}</td>
               </tr>
             );
             if (row.isDateRow) return (
               <tr key={idx}>
                 <td style={{ paddingLeft: '25px' }}>{row.date}</td>
-                <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.value)}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.goal)}</td>
+                <td style={{ textAlign: 'right' }} className={`diff-col ${getDiffStyle(row.diff)}`}>
+                  {row.diff > 0 ? '+' : ''}${formatCurrency(row.diff)}
+                </td>
               </tr>
             );
             if (row.isLineTotal) return (
               <tr key={idx} className="line-total-row">
                 <td style={{ textAlign: 'right' }}>{row.label}</td>
-                <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.value)}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.goal)}</td>
+                <td style={{ textAlign: 'right' }} className={`diff-col ${getDiffStyle(row.diff)}`}>
+                  {row.diff > 0 ? '+' : ''}${formatCurrency(row.diff)}
+                </td>
               </tr>
             );
             if (row.isGrandTotal) return (
               <tr key="grand" className="grand-total-row">
                 <td style={{ textAlign: 'right' }}>{row.label}</td>
-                <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.value)}</td>
+                <td style={{ textAlign: 'right' }}>${formatCurrency(row.goal)}</td>
+                <td style={{ textAlign: 'right' }} className={`diff-col ${getDiffStyle(row.diff)}`}>
+                  {row.diff > 0 ? '+' : ''}${formatCurrency(row.diff)}
+                </td>
               </tr>
             );
             return null;
           }) : (
-             <tr><td colSpan="2" style={{ textAlign: 'center', padding: '20px' }}>No production records found for these filters.</td></tr>
+            <tr><td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No production records found for these filters.</td></tr>
           )}
         </tbody>
       </table>
