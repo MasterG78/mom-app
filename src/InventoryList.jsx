@@ -5,14 +5,14 @@ import StatusHistoryModal from './StatusHistoryModal';
 export default function InventoryList() {
   const [bundles, setBundles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBundle, setSelectedBundle] = useState(null); 
+  const [selectedBundle, setSelectedBundle] = useState(null);
 
   useEffect(() => {
     const fetchBundles = async () => {
       setLoading(true);
       const { data, error } = await supabase
-        .from('inventory_view') 
-        .select(`*`) 
+        .from('inventory_view')
+        .select(`*`)
         .order('produced', { ascending: false })
         .limit(10);
 
@@ -28,9 +28,9 @@ export default function InventoryList() {
   }, []);
 
   const handleRowClick = (bundle) => {
-    setSelectedBundle(bundle); 
+    setSelectedBundle(bundle);
   };
-  
+
   const handleCloseModal = () => {
     setSelectedBundle(null);
   };
@@ -45,7 +45,7 @@ export default function InventoryList() {
         <thead>
           <tr style={{ borderBottom: '2px solid #ccc' }}>
             <th style={{ padding: '8px', textAlign: 'left' }}>Tag #</th>
-            <th style={{ padding: '8px', textAlign: 'left' }}>Line</th> {/* NEW HEADER */}
+            <th style={{ padding: '8px', textAlign: 'left' }}>Line</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Quantity</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Tagger (Name)</th>
@@ -53,13 +53,13 @@ export default function InventoryList() {
         </thead>
         <tbody>
           {bundles.map((bundle) => (
-            <tr 
-              key={bundle.tag} 
-              onClick={() => handleRowClick(bundle)} 
-              style={{ 
-                borderBottom: '1px dotted #eee', 
-                cursor: 'pointer', 
-                backgroundColor: selectedBundle?.id === bundle.id ? '#f0f8ff' : 'white' 
+            <tr
+              key={bundle.tag}
+              onClick={() => handleRowClick(bundle)}
+              style={{
+                borderBottom: '1px dotted #eee',
+                cursor: 'pointer',
+                backgroundColor: selectedBundle?.id === bundle.id ? '#f0f8ff' : 'white'
               }}
             >
               <td style={{ padding: '8px' }}>{bundle.tag}</td>
@@ -75,10 +75,10 @@ export default function InventoryList() {
       </table>
 
       {selectedBundle && (
-        <StatusHistoryModal 
-          inventoryId={selectedBundle.id} 
-          tag={selectedBundle.tag} 
-          onClose={handleCloseModal} 
+        <StatusHistoryModal
+          inventoryId={selectedBundle.id}
+          tag={selectedBundle.tag}
+          onClose={handleCloseModal}
         />
       )}
     </div>

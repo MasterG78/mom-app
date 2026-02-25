@@ -100,12 +100,17 @@ export default function InventoryReport() {
 
     data = data.filter(item => {
       if (!item.produced) return false;
-      const prodDate = new Date(item.produced);
+
+      // Parse the 'YYYY-MM-DD' part to avoid timezone shifts during filtering
+      const datePart = item.produced.split('T')[0];
+      const [year, month, dayNum] = datePart.split('-').map(Number);
+      const prodDate = new Date(year, month - 1, dayNum);
 
       if (dateRange === 'This Week') {
         const sunday = new Date(now);
         sunday.setDate(now.getDate() - now.getDay());
-        return prodDate >= getStartOfDay(sunday);
+        const startOfSun = getStartOfDay(sunday);
+        return prodDate >= startOfSun;
       }
       if (dateRange === 'Last Week') {
         const lastSunday = new Date(now);
@@ -136,13 +141,11 @@ export default function InventoryReport() {
     if (sortBy === 'date') {
       data.sort((a, b) => {
         // Sort by Date (Day only) Descending
-        const dateA = new Date(a.produced);
-        dateA.setHours(0, 0, 0, 0);
-        const dateB = new Date(b.produced);
-        dateB.setHours(0, 0, 0, 0);
+        const datePartA = a.produced.split('T')[0];
+        const datePartB = b.produced.split('T')[0];
 
-        if (dateA.getTime() !== dateB.getTime()) {
-          return dateB.getTime() - dateA.getTime();
+        if (datePartA !== datePartB) {
+          return datePartB.localeCompare(datePartA);
         }
         // Secondary sort by Tag (Numeric)
         return (a.tag || '').toString().localeCompare((b.tag || '').toString(), undefined, { numeric: true });
@@ -212,6 +215,14 @@ export default function InventoryReport() {
 
     return data;
   }, [reportData, sortBy, lineFilter, statusFilter, dateRange, customStart, customEnd]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    // Use the calendar day part to avoid timezone shifts
+    const datePart = dateStr.split('T')[0];
+    const [year, month, day] = datePart.split('-');
+    return `${month}/${day}/${year}`;
+  };
 
   const reportStyles = `
     @media print { .no-print { display: none !important; } }
@@ -344,8 +355,8 @@ export default function InventoryReport() {
                 }}
               >
                 <td>{row.tag}</td>
-                <td>{row.invoice_id || '-'}</td>
-                <td>{new Date(row.produced).toLocaleDateString()}</td>
+                <td>{row.invoice_number || '-'}</td>
+                <td>{formatDate(row.produced)}</td>
                 <td>{row.line}</td>
                 <td>{row.product_name}</td>
                 <td>{row.current_status || '-'}</td>

@@ -1,12 +1,12 @@
 -- Drop the existing view
 DROP VIEW IF EXISTS inventory_report_view;
 
--- Re-create the view with additional fields
+-- Re-create the view with robust joins and additional fields
 CREATE OR REPLACE VIEW inventory_report_view AS
 SELECT
     i.id,
     i.tag,
-    i.invoice_id::text,  -- Cast to text if needed, or keep as integer depending on preference
+    COALESCE(q.raw_data->>'DocNumber', i.invoice_id::text) AS invoice_id,
     i.line,
     i.produced,
     p.product_name,
@@ -25,6 +25,7 @@ SELECT
 FROM inventory i
 LEFT JOIN products p ON i.product_id = p.id
 LEFT JOIN species sp ON i.species_id = sp.id
+LEFT JOIN qbo_invoices q ON i.invoice_id = q.id
 LEFT JOIN (
     SELECT DISTINCT ON (inventory_id)
         inventory_id,

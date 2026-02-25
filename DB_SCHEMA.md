@@ -9,18 +9,18 @@
 | inventory                  | quantity              | smallint                 | YES         | null              |
 | inventory                  | inventory_value       | numeric                  | YES         | null              |
 | inventory                  | sales_value           | numeric                  | YES         | null              |
-| inventory                  | invoice_id            | integer                  | YES         | null              |
+| inventory                  | invoice_number        | text                     | YES         | null              |
 | inventory                  | line                  | character varying        | YES         | null              |
 | inventory                  | length                | numeric                  | YES         | null              |
 | inventory                  | width                 | numeric                  | YES         | null              |
 | inventory                  | rows                  | smallint                 | YES         | null              |
 | inventory                  | note                  | text                     | YES         | null              |
 | inventory                  | weight                | numeric                  | YES         | null              |
-| inventory                  | tagger                | uuid                     | NO          | auth.uid()        |
+| inventory                  | tagger                | text                     | NO          | null              |
 | inventory                  | customer_name         | text                     | YES         | null              |
 | inventory_report_view      | id                    | integer                  | YES         | null              |
 | inventory_report_view      | tag                   | integer                  | YES         | null              |
-| inventory_report_view      | invoice_id            | text                     | YES         | null              |
+| inventory_report_view      | invoice_number        | text                     | YES         | null              |
 | inventory_report_view      | line                  | character varying        | YES         | null              |
 | inventory_report_view      | produced              | timestamp with time zone | YES         | null              |
 | inventory_report_view      | product_name          | character varying        | YES         | null              |
@@ -30,10 +30,15 @@
 | inventory_report_view      | total_value           | numeric                  | YES         | null              |
 | inventory_report_view      | sales_value           | numeric                  | YES         | null              |
 | inventory_report_view      | customer_name         | text                     | YES         | null              |
+| inventory_report_view      | length                | numeric                  | YES         | null              |
+| inventory_report_view      | width                 | numeric                  | YES         | null              |
+| inventory_report_view      | rows                  | smallint                 | YES         | null              |
+| inventory_report_view      | note                  | text                     | YES         | null              |
+| inventory_report_view      | species_name          | character varying        | YES         | null              |
 | inventory_tag_sales_report | tag                   | integer                  | YES         | null              |
 | inventory_tag_sales_report | product_name          | character varying        | YES         | null              |
 | inventory_tag_sales_report | item_sale_price       | numeric                  | YES         | null              |
-| inventory_tag_sales_report | qbo_invoice_number    | text                     | YES         | null              |
+| inventory_tag_sales_report | invoice_number        | text                     | YES         | null              |
 | inventory_tag_sales_report | customer_name         | text                     | YES         | null              |
 | inventory_tag_sales_report | sale_date             | timestamp with time zone | YES         | null              |
 | inventory_view             | id                    | integer                  | YES         | null              |
@@ -60,14 +65,15 @@
 | inventory_weekly_snapshots | balance_check         | numeric                  | YES         | null              |
 | inventory_weekly_snapshots | notes                 | text                     | YES         | null              |
 | invoice_line_items         | id                    | uuid                     | NO          | gen_random_uuid() |
+| invoice_line_items         | invoice_id            | text                     | YES         | null              |
 | invoice_line_items         | invoice_number        | text                     | YES         | null              |
 | invoice_line_items         | customer_name         | text                     | YES         | null              |
-| invoice_line_items         | tag_number            | text                     | YES         | null              |
 | invoice_line_items         | description           | text                     | YES         | null              |
 | invoice_line_items         | quantity              | numeric                  | YES         | null              |
 | invoice_line_items         | rate                  | numeric                  | YES         | null              |
 | invoice_line_items         | amount                | numeric                  | YES         | null              |
 | invoice_line_items         | created_at            | timestamp with time zone | YES         | now()             |
+| invoice_line_items         | tag_number            | text                     | YES         | null              |
 | owner_weekly_trend_report  | week_ending           | date                     | YES         | null              |
 | owner_weekly_trend_report  | Weekly Revenue        | numeric                  | YES         | null              |
 | owner_weekly_trend_report  | Gross Profit          | numeric                  | YES         | null              |
@@ -77,6 +83,11 @@
 | owner_weekly_trend_report  | Expected Change       | numeric                  | YES         | null              |
 | owner_weekly_trend_report  | Shrinkage/Discrepancy | numeric                  | YES         | null              |
 | owner_weekly_trend_report  | notes                 | text                     | YES         | null              |
+| production_goals           | id                    | bigint                   | NO          | null              |
+| production_goals           | day_of_week           | smallint                 | NO          | null              |
+| production_goals           | line                  | character varying        | NO          | null              |
+| production_goals           | goal_value            | numeric                  | NO          | 0                 |
+| production_goals           | created_at            | timestamp with time zone | YES         | now()             |
 | products                   | id                    | bigint                   | NO          | null              |
 | products                   | created_at            | timestamp with time zone | NO          | now()             |
 | products                   | product_name          | character varying        | NO          | null              |
@@ -97,10 +108,6 @@
 | profiles                   | updated_at            | timestamp with time zone | YES         | null              |
 | profiles                   | username              | text                     | NO          | null              |
 | profiles                   | full_name             | text                     | YES         | null              |
-| qbo_invoices               | id                    | bigint                   | NO          | null              |
-| qbo_invoices               | created_at            | timestamp with time zone | NO          | now()             |
-| qbo_invoices               | qbo_id                | text                     | YES         | null              |
-| qbo_invoices               | raw_data              | jsonb                    | YES         | null              |
 | species                    | id                    | bigint                   | NO          | null              |
 | species                    | species_name          | character varying        | NO          | null              |
 | species_groups             | id                    | bigint                   | NO          | null              |
@@ -123,3 +130,11 @@
 | statuses                   | id                    | bigint                   | NO          | null              |
 | statuses                   | status_name           | character varying        | NO          | null              |
 | statuses                   | status_description    | character varying        | YES         | null              |
+| temp_products              | product_name          | text                     | YES         | null              |
+| temp_products              | unit_type             | text                     | YES         | null              |
+| temp_products              | unit_product_value    | double precision         | YES         | null              |
+| temp_products              | default_length        | double precision         | YES         | null              |
+| temp_products              | default_quantity      | bigint                   | YES         | null              |
+| temp_products              | unit_boardfeet        | double precision         | YES         | null              |
+| temp_products              | unit_inv_value        | double precision         | YES         | null              |
+| temp_products              | menu_show             | boolean                  | YES         | null              |

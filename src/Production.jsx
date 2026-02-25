@@ -65,7 +65,11 @@ export default function ProductionReport() {
 
     data = data.filter(item => {
       if (!item.produced) return false;
-      const prodDate = new Date(item.produced);
+
+      // Parse the 'YYYY-MM-DD' part to avoid timezone shifts during filtering
+      const datePart = item.produced.split('T')[0];
+      const [year, month, dayNum] = datePart.split('-').map(Number);
+      const prodDate = new Date(year, month - 1, dayNum);
 
       if (dateRange === 'This Week') {
         return isWithinInterval(prodDate, { start: thisWeekStart, end: thisWeekEnd });
@@ -82,8 +86,16 @@ export default function ProductionReport() {
     let grandTotalGoal = 0;
 
     data.forEach(item => {
-      const producedDate = new Date(item.produced);
-      const day = format(producedDate, 'MM/dd/yyyy'); // Use format for consistent daily grouping
+      if (!item.produced) return;
+
+      // Parse the 'YYYY-MM-DD' part of the ISO string to avoid timezone shifts
+      // item.produced is "2026-02-23T00:00:00+00:00"
+      const datePart = item.produced.split('T')[0];
+      const [year, month, dayNum] = datePart.split('-').map(Number);
+
+      // Create a date object in local time for that specific calendar day
+      const producedDate = new Date(year, month - 1, dayNum);
+      const day = format(producedDate, 'MM/dd/yyyy');
       const dow = producedDate.getDay(); // 0=Sunday, 1=Monday...
       const line = item.line || 'Unknown';
       const value = parseFloat(item.total_value) || 0;

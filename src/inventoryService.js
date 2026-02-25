@@ -13,23 +13,23 @@ export const getStatusHistory = async (inventoryId) => {
     console.error('Error fetching history:', error);
     return [];
   }
-  
+
   return data; // Returns id, notes, status_name, updater_name, etc.
 };
 
 export const updateInventoryStatus = async (inventoryId, statusId, userId, notes = '') => {
   if (!inventoryId || !statusId || !userId) return { error: 'Missing data' };
-  
+
   const { data, error } = await supabase
     .from('status_changes')
-    .insert([{ 
-      inventory_id: inventoryId, 
-      status_id: statusId, 
-      updated_by: userId, 
-      notes: notes 
+    .insert([{
+      inventory_id: inventoryId,
+      status_id: statusId,
+      updated_by: userId,
+      notes: notes
     }])
     .select();
-    
+
   return { data, error };
 };
 
@@ -55,7 +55,7 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
   if (!startDate || !endDate) {
     throw new Error("Invalid date range selected for export.");
   }
-  
+
   // 2. Fetch Data from Supabase
   const { data: inventoryData, error: inventoryError } = await supabase
     .from('inventory')
@@ -69,7 +69,7 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
       quantity,
       inventory_value,
       sales_value,
-      invoice_id,
+      invoice_number,
       line,
       length,
       width,
@@ -95,7 +95,7 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
       .from('profiles')
       .select('id, full_name')
       .in('id', taggerIds);
-    
+
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
     } else {
@@ -116,9 +116,9 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
 
   const csv = Papa.unparse(flattenedData, {
     columns: [
-      'id', 'produced', 'tag', 'product_name', 'species_name', 
+      'id', 'produced', 'tag', 'product_name', 'species_name',
       'boardfeet', 'quantity', 'inventory_value', 'sales_value',
-      'invoice_id', 'line', 'length', 'width', 'rows', 'note',
+      'invoice_number', 'line', 'length', 'width', 'rows', 'note',
       'weight', 'tagger_name'
     ]
   });
