@@ -15,6 +15,7 @@ The process involves:
 import os
 import pandas as pd
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
@@ -24,14 +25,23 @@ load_dotenv()
 def connect_to_supabase():
     """
     Establishes a connection to the Supabase (PostgreSQL) database.
+    Uses SQLAlchemy's URL.create() so special characters in the password
+    are handled automatically — no manual URL-encoding needed.
 
     Returns:
         sqlalchemy.engine.base.Engine: The database engine object.
     """
-    connection_string = os.getenv("SUPABASE_CONNECTION_STRING")
-    if not connection_string:
-        raise ValueError("SUPABASE_CONNECTION_STRING environment variable not set.")
-    return create_engine(connection_string)
+    url = URL.create(
+        drivername="postgresql+psycopg2",
+        host=os.getenv("SUPABASE_DB_HOST"),
+        port=int(os.getenv("SUPABASE_DB_PORT", 5432)),
+        database=os.getenv("SUPABASE_DB_NAME"),
+        username=os.getenv("SUPABASE_DB_USER"),
+        password=os.getenv("SUPABASE_DB_PASSWORD"),
+    )
+    if not url.host:
+        raise ValueError("Supabase DB environment variables are not set.")
+    return create_engine(url)
 
 
 def pull_data_from_access(conn, current_date):
@@ -287,10 +297,14 @@ def reconcile_invoice_line_items(engine, system_user_id):
                 i.id   AS inventory_id
             FROM invoice_line_items ili
             INNER JOIN inventory i
-                ON i.tag = ili.tag_number::integer
+                ON i.tag = CASE 
+                    WHEN ili.tag_number ~ '^[0-9]+$' THEN ili.tag_number::integer 
+                    ELSE NULL 
+                END
             WHERE
                 ili.tag_number IS NOT NULL
                 AND TRIM(ili.tag_number) != ''
+                AND ili.tag_number ~ '^[0-9]+$'
                 -- Skip rows the real-time trigger already handled
                 AND (i.invoice_number IS DISTINCT FROM ili.invoice_number)
         """
