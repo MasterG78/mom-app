@@ -18,7 +18,7 @@ BEGIN
         VALUES (
             NEW.id,
             in_stock_status_id,
-            COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid),
+            COALESCE(auth.uid(), '71c80b7d-61ac-47cf-9998-f482553fc54a'::uuid),
             'Initial status'
         );
     END IF;

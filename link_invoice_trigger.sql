@@ -77,7 +77,7 @@ BEGIN
                         VALUES (
                             inventory_record.id, 
                             sold_status_id, 
-                            COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'), -- Fallback GUID or handle null
+                            COALESCE(auth.uid(), '71c80b7d-61ac-47cf-9998-f482553fc54a'::uuid), -- Fallback GUID or handle null
                             'Sold on Invoice #' || (invoice_data->>'DocNumber')
                         );
                     END IF;

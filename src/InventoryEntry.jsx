@@ -43,8 +43,6 @@ export default function InventoryEntry({ session, onBundleCreated }) {
     length: '',
     width: '',
     rows: '',
-    rows: '',
-    note: '',
     note: '',
     customer_name: '',
     tagger: ''
@@ -163,11 +161,9 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           inventory_value: snapshotValue, // snapshot locked
           length: formData.length || null,
           width: formData.width || null,
-          width: formData.width || null,
           rows: formData.rows || null,
           note: formData.note,
           produced: new Date(),
-          sales_value: predictedSalesValue, // Predicted Price
           sales_value: predictedSalesValue, // Predicted Price
           customer_name: formData.customer_name || null, // Special Order Customer
           tagger: formData.tagger || null

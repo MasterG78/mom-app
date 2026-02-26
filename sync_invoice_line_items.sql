@@ -11,7 +11,13 @@
 -- -----------------------------------------------------------------------------
 -- STEP 1: Drop obsolete qbo_invoices infrastructure
 -- -----------------------------------------------------------------------------
-DROP TRIGGER IF EXISTS trigger_link_qbo_invoice ON qbo_invoices;
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'qbo_invoices') THEN
+        EXECUTE 'DROP TRIGGER IF EXISTS trigger_link_qbo_invoice ON qbo_invoices';
+    END IF;
+END $$;
+
 DROP FUNCTION IF EXISTS link_qbo_invoice_to_inventory();
 DROP FUNCTION IF EXISTS upsert_invoices_bulk(jsonb);
 
@@ -25,8 +31,20 @@ DROP TABLE IF EXISTS qbo_invoices;
 -- -----------------------------------------------------------------------------
 -- STEP 2: Rename and retype inventory.invoice_id -> invoice_number
 -- -----------------------------------------------------------------------------
-ALTER TABLE inventory RENAME COLUMN invoice_id TO invoice_number;
-ALTER TABLE inventory ALTER COLUMN invoice_number TYPE text USING invoice_number::text;
+DO $$
+BEGIN
+    -- Check if invoice_id exists before renaming
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.columns 
+        WHERE table_name = 'inventory' AND column_name = 'invoice_id'
+    ) THEN
+        ALTER TABLE inventory RENAME COLUMN invoice_id TO invoice_number;
+    END IF;
+
+    -- Always ensure it's text type
+    ALTER TABLE inventory ALTER COLUMN invoice_number TYPE text USING invoice_number::text;
+END $$;
 
 
 -- -----------------------------------------------------------------------------
@@ -99,8 +117,8 @@ DECLARE
     inventory_record  record;
     sold_status_id    bigint;
 BEGIN
-    -- Only process rows that have a tag_number
-    IF NEW.tag_number IS NULL OR TRIM(NEW.tag_number) = '' THEN
+    -- Only process rows that have a valid numeric tag_number
+    IF NEW.tag_number IS NULL OR NOT (NEW.tag_number ~ '^[0-9]+$') THEN
         RETURN NEW;
     END IF;
 
@@ -139,7 +157,7 @@ BEGIN
             sold_status_id,
             -- Use the authenticated user if available, otherwise fall back to
             -- a known system GUID so the NOT NULL constraint is satisfied.
-            COALESCE(auth.uid(), '00000000-0000-0000-0000-000000000000'::uuid),
+            COALESCE(auth.uid(), '71c80b7d-61ac-47cf-9998-f482553fc54a'::uuid),
             'Sold on Invoice #' || NEW.invoice_number
         );
     END IF;

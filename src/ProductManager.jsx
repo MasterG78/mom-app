@@ -21,7 +21,6 @@ export default function ProductManager() {
     group_id: '',
     account: '',
     account_product: '',
-    account_product: '',
     menu_show: true,
     is_special_order: false
   };
@@ -62,8 +61,6 @@ export default function ProductManager() {
       group_id: formData.group_id ? parseInt(formData.group_id) : null,
       account: formData.account ? parseInt(formData.account) : null,
       account_product: formData.account_product || null,
-      account: formData.account ? parseInt(formData.account) : null,
-      account_product: formData.account_product || null,
       menu_show: formData.menu_show,
       is_special_order: formData.is_special_order
     };
@@ -90,8 +87,6 @@ export default function ProductManager() {
       group_id: p.group_id || '',
       unit_boardfeet: p.unit_boardfeet || '',
       default_length: p.default_length || '',
-      default_quantity: p.default_quantity || '',
-      account: p.account || '',
       default_quantity: p.default_quantity || '',
       account: p.account || '',
       account_product: p.account_product || '',
