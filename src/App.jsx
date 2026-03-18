@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
-import { supabase } from './supabaseClient'
-import Auth from './Auth'
-import InventoryEntry from './InventoryEntry'
-import InventoryList from './InventoryList'
-import ProductManager from './ProductManager'
-import InventoryReport from './InventoryReport' // NEW: Import the report component
-import ProductionReport from './Production'
-import Export from './Export'
+import { supabase } from './services/supabaseClient'
+import Auth from './components/Auth'
+import InventoryEntry from './components/InventoryEntry'
+import InventoryList from './components/InventoryList'
+import ProductManager from './components/ProductManager'
+import InventoryReport from './components/InventoryReport'
+import ProductionReport from './components/Production'
+import Export from './components/Export'
 
 export default function App() {
   const [session, setSession] = useState(null)

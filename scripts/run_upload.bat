@@ -6,7 +6,7 @@ echo ================================================
 echo.
 
 cd /d "c:\projects\supabase\mom\mom-app"
-python upload.py
+python scripts\upload.py
 
 echo.
 echo ================================================

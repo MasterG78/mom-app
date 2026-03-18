@@ -148,18 +148,21 @@ BEGIN
     LIMIT 1;
 
     IF sold_status_id IS NOT NULL THEN
-        -- Append audit entry regardless of current status.
-        -- This intentionally allows duplicate "Sold" entries to capture
-        -- every sale event (e.g. same item sold on two separate invoices).
-        INSERT INTO status_changes (inventory_id, status_id, updated_by, notes)
-        VALUES (
-            inventory_record.id,
-            sold_status_id,
-            -- Use the authenticated user if available, otherwise fall back to
-            -- a known system GUID so the NOT NULL constraint is satisfied.
-            COALESCE(auth.uid(), '71c80b7d-61ac-47cf-9998-f482553fc54a'::uuid),
-            'Sold on Invoice #' || NEW.invoice_number
-        );
+        -- Check if a 'Sold' entry for this invoice already exists to prevent duplicates
+        IF NOT EXISTS (
+            SELECT 1 FROM status_changes 
+            WHERE inventory_id = inventory_record.id 
+            AND status_id = sold_status_id 
+            AND notes LIKE '%Invoice #' || NEW.invoice_number || '%'
+        ) THEN
+            INSERT INTO status_changes (inventory_id, status_id, updated_by, notes)
+            VALUES (
+                inventory_record.id,
+                sold_status_id,
+                COALESCE(auth.uid(), '71c80b7d-61ac-47cf-9998-f482553fc54a'::uuid),
+                'Sold on Invoice #' || NEW.invoice_number
+            );
+        END IF;
     END IF;
 
     RETURN NEW;

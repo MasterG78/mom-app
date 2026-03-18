@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from './supabaseClient';
+import { supabase } from '../services/supabaseClient';
 import StatusHistoryModal from './StatusHistoryModal';
 import { pdf } from '@react-pdf/renderer';
 import { InventoryTagPDF } from './InventoryTag';

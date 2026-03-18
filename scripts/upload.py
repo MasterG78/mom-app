@@ -256,6 +256,30 @@ def add_status_changes(df, engine):
         # 4. Prepare the data for insertion
         df_final = df_merged[['inventory_id', 'status_id']].copy()
         df_final.dropna(inplace=True)
+        df_final['inventory_id'] = df_final['inventory_id'].astype(int)
+        df_final['status_id'] = df_final['status_id'].astype(int)
+
+        # 4.a Fetch the latest status for each inventory item to prevent duplicates
+        latest_statuses_query = """
+            SELECT DISTINCT ON (inventory_id) inventory_id, status_id as current_status_id
+            FROM status_changes
+            ORDER BY inventory_id, created_at DESC
+        """
+        df_latest_statuses = pd.read_sql(latest_statuses_query, engine)
+
+        # Merge new statuses with current statuses
+        df_final = df_final.merge(df_latest_statuses, on='inventory_id', how='left')
+
+        # Filter out records where the new status is the same as the current status
+        # This prevents inserting a new 'Sold' status if it's already 'Sold'
+        df_final = df_final[df_final['status_id'] != df_final['current_status_id']]
+        
+        df_final = df_final.drop(columns=['current_status_id'])
+
+        if df_final.empty:
+            print("No new status changes to upload after deduplication.")
+            return
+
         df_final['updated_by'] = '71c80b7d-61ac-47cf-9998-f482553fc54a'
         df_final['created_at'] = datetime.now()
 
@@ -287,14 +311,18 @@ def reconcile_invoice_line_items(engine, system_user_id):
     """
     try:
         # Find all invoice_line_items that now match an inventory tag
-        # but whose data hasn't been applied to that inventory row yet.
+        # but whose data might be missing or mismatched in the inventory row.
+        # This handles the pre-production scenario where invoices arrive in real-time
+        # before inventory items are entered.
         unreconciled_query = """
             SELECT
                 ili.tag_number,
                 ili.invoice_number,
                 ili.amount,
                 ili.customer_name,
-                i.id   AS inventory_id
+                i.id   AS inventory_id,
+                i.invoice_number AS current_invoice,
+                i.sales_value AS current_sales
             FROM invoice_line_items ili
             INNER JOIN inventory i
                 ON i.tag = CASE 
@@ -305,8 +333,15 @@ def reconcile_invoice_line_items(engine, system_user_id):
                 ili.tag_number IS NOT NULL
                 AND TRIM(ili.tag_number) != ''
                 AND ili.tag_number ~ '^[0-9]+$'
-                -- Skip rows the real-time trigger already handled
-                AND (i.invoice_number IS DISTINCT FROM ili.invoice_number)
+                -- We reconcile if:
+                -- 1. Inventory has no invoice info yet
+                -- 2. Invoice number doesn't match
+                -- 3. Sales value doesn't match
+                AND (
+                    i.invoice_number IS DISTINCT FROM ili.invoice_number
+                    OR i.sales_value IS DISTINCT FROM ili.amount
+                    OR i.customer_name IS DISTINCT FROM ili.customer_name
+                )
         """
         df_unreconciled = pd.read_sql(unreconciled_query, engine)
 
@@ -314,7 +349,7 @@ def reconcile_invoice_line_items(engine, system_user_id):
             print("Invoice reconciliation: nothing to reconcile.")
             return
 
-        print(f"Invoice reconciliation: {len(df_unreconciled)} line item(s) to apply.")
+        print(f"Invoice reconciliation: {len(df_unreconciled)} line item(s) to synchronize.")
 
         # Look up the 'Sold' status ID once
         df_statuses = pd.read_sql(
@@ -348,18 +383,33 @@ def reconcile_invoice_line_items(engine, system_user_id):
                     'inventory_id': inventory_id
                 })
 
-                # 2. Append a Sold audit entry to status_changes
-                conn.execute(text("""
-                    INSERT INTO status_changes
-                        (inventory_id, status_id, updated_by, notes)
-                    VALUES
-                        (:inventory_id, :status_id, :updated_by, :notes)
-                """), {
+                # 2. Append a Sold audit entry to status_changes IF one doesn't exist for this invoice
+                # This check prevents duplicate 'Sold' entries if the reconciliation runs multiple times.
+                check_status_query = """
+                    SELECT 1 FROM status_changes 
+                    WHERE inventory_id = :inventory_id 
+                    AND status_id = :status_id 
+                    AND notes LIKE :note_pattern
+                    LIMIT 1
+                """
+                exists = conn.execute(text(check_status_query), {
                     'inventory_id': inventory_id,
                     'status_id': sold_status_id,
-                    'updated_by': system_user_id,
-                    'notes': f'Sold on Invoice #{invoice_number}'
-                })
+                    'note_pattern': f'%Invoice #{invoice_number}%'
+                }).fetchone()
+
+                if not exists:
+                    conn.execute(text("""
+                        INSERT INTO status_changes
+                            (inventory_id, status_id, updated_by, notes)
+                        VALUES
+                            (:inventory_id, :status_id, :updated_by, :notes)
+                    """), {
+                        'inventory_id': inventory_id,
+                        'status_id': sold_status_id,
+                        'updated_by': system_user_id,
+                        'notes': f'Sold on Invoice #{invoice_number} (Retroactive Sync)'
+                    })
 
         print(f"Invoice reconciliation: complete. {len(df_unreconciled)} record(s) updated.")
 

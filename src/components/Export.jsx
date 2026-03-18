@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
-import { exportInventoryByDate } from './inventoryService';
+import { exportInventoryByDate } from '../services/inventoryService';
 
 function Export() {
   const [filterType, setFilterType] = useState('currentYear'); // 'currentYear', 'lastYear', 'custom'
