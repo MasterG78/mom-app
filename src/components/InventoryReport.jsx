@@ -5,13 +5,14 @@ import { pdf } from '@react-pdf/renderer';
 import { InventoryTagPDF } from './InventoryTag';
 import QRCode from 'qrcode';
 import { saveAs } from 'file-saver';
+import PrintTagModal from './PrintTagModal';
 
 export default function InventoryReport() {
   const [reportData, setReportData] = useState([]);
   const [statusOptions, setStatusOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState(null);
-  const [generatingPdfId, setGeneratingPdfId] = useState(null);
+  const [printingTagData, setPrintingTagData] = useState(null);
 
   // --- Filters ---
   const [sortBy, setSortBy] = useState('product');
@@ -59,26 +60,9 @@ export default function InventoryReport() {
     setSelectedEntry(null);
   };
 
-  const handlePrintTag = async (row, e) => {
+  const handlePrintTag = (row, e) => {
     e.stopPropagation();
-    try {
-      setGeneratingPdfId(row.id);
-
-      // 1. Generate QR Code Data URI
-      const qrText = `Tag: ${row.tag}\n${row.product_name}\nDim: ${row.length || '-'}x${row.width || '-'}x${row.rows || '-'}`;
-      const qrCodeUrl = await QRCode.toDataURL(qrText);
-
-      // 2. Generate PDF Blob
-      const blob = await pdf(<InventoryTagPDF data={row} qrCodeUrl={qrCodeUrl} />).toBlob();
-
-      // 3. Save File
-      saveAs(blob, `tag_${row.tag}.pdf`);
-    } catch (error) {
-      console.error('Error generating tag:', error);
-      alert('Failed to generate tag PDF.');
-    } finally {
-      setGeneratingPdfId(null);
-    }
+    setPrintingTagData(row);
   };
 
   const processedReport = useMemo(() => {
@@ -368,7 +352,6 @@ export default function InventoryReport() {
                 <td className='no-print' onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={(e) => handlePrintTag(row, e)}
-                    disabled={generatingPdfId === row.id}
                     style={{
                       textDecoration: 'none',
                       padding: '3px 6px',
@@ -380,7 +363,7 @@ export default function InventoryReport() {
                       cursor: 'pointer'
                     }}
                   >
-                    {generatingPdfId === row.id ? 'Gen...' : 'Print Tag'}
+                    Print Tag
                   </button>
                 </td>
               </tr>
@@ -396,6 +379,13 @@ export default function InventoryReport() {
           inventoryId={selectedEntry.id}
           tag={selectedEntry.tag}
           onClose={handleCloseModal}
+        />
+      )}
+      {printingTagData && (
+        <PrintTagModal
+          data={printingTagData}
+          mode="report"
+          onClose={() => setPrintingTagData(null)}
         />
       )}
     </div>

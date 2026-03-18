@@ -46,11 +46,16 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     tagNumber: {
-        fontSize: 28,
+        fontSize: 36,
         fontWeight: 'heavy',
         marginBottom: 5,
     },
     productName: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 2,
+    },
+    qtyText: {
         fontSize: 12,
         fontWeight: 'bold',
         marginBottom: 2,
@@ -65,7 +70,7 @@ const styles = StyleSheet.create({
     },
 });
 
-export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
+export const InventoryTagPDF = ({ data, qrCodeUrl, copies = 1 }) => {
     const formatDate = (dateString) => {
         if (!dateString) return '';
         return new Date(dateString).toLocaleString([], { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -75,35 +80,22 @@ export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
         <Document>
             {/* 4 inches wide x 2 inches high. 72 points per inch. 4*72=288, 2*72=144. */}
             {/* Explicitly defined size order: [Width, Height] */}
-            <Page size={[288, 144]} style={styles.page}>
+            {Array.from({ length: copies }).map((_, index) => (
+                <Page key={index} size={[288, 144]} style={styles.page}>
                 <View style={styles.labelContainer}>
                     <View style={styles.leftCol}>
                         <Text style={styles.tagNumber}>{data.tag}</Text>
                         <Text style={styles.productName}>{data.product_name}</Text>
-                        <Text style={styles.detailText}>{data.species_name || ''}</Text>
-                        <Text style={styles.detailText}>Line: {data.line} | Date: {formatDate(data.produced)}</Text>
-
-                        {/* Conditional Rendering for Dimensions */}
-                        {(data.length || data.width || data.rows) && (
-                            <Text style={styles.detailText}>
-                                Dims: {data.length || '-'} x {data.width || '-'} x {data.rows || '-'}
-                                {data.boardfeet ? ` (${data.boardfeet} BF)` : ''}
-                            </Text>
-                        )}
-
-                        {/* Qty / BdFt — mutually exclusive, same position */}
+                        
+                        {/* Qty / BdFt just below description */}
                         {data.boardfeet ? (
-                            <Text style={styles.detailText}>BdFt: {data.boardfeet}</Text>
+                            <Text style={styles.qtyText}>BdFt: {data.boardfeet}</Text>
                         ) : data.quantity ? (
-                            <Text style={styles.detailText}>Qty: {data.quantity}</Text>
+                            <Text style={styles.qtyText}>Qty: {data.quantity}</Text>
                         ) : null}
 
-
-                        {data.note && (
-                            <Text style={{ ...styles.detailText, fontStyle: 'italic', marginTop: 2 }}>
-                                Note: {data.note.substring(0, 30)}
-                            </Text>
-                        )}
+                        <Text style={styles.detailText}>{data.species_name || ''}</Text>
+                        <Text style={styles.detailText}>Line: {data.line} | Date: {formatDate(data.produced)}</Text>
                     </View>
 
                     <View style={styles.rightCol}>
@@ -118,6 +110,7 @@ export const InventoryTagPDF = ({ data, qrCodeUrl }) => {
                     </View>
                 </View>
             </Page>
+            ))}
         </Document>
     );
 };
