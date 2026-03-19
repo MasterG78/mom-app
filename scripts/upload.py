@@ -363,7 +363,7 @@ def add_status_changes(df, engine):
         df_merged.dropna(subset=['tag'], inplace=True)
         df_merged['tag'] = df_merged['tag'].astype('Int64')
         df_merged = df_merged.merge(df_inventory, on='tag', how='left')
-        
+
         # 4. Prepare the data for insertion
         df_final = df_merged[['inventory_id', 'status_id']].copy()
         df_final.dropna(inplace=True)
@@ -371,6 +371,7 @@ def add_status_changes(df, engine):
         df_final['status_id'] = df_final['status_id'].astype(int)
 
         # 4.a Fetch the latest status for each inventory item to prevent duplicates
+        # and to enforce status-transition rules.
         latest_statuses_query = """
             SELECT DISTINCT ON (inventory_id) inventory_id, status_id as current_status_id
             FROM status_changes
@@ -378,13 +379,33 @@ def add_status_changes(df, engine):
         """
         df_latest_statuses = pd.read_sql(latest_statuses_query, engine)
 
+        # Look up the numeric IDs for the statuses we care about for transition rules
+        def get_status_id(name):
+            match = df_statuses.loc[df_statuses['status_name'] == name, 'status_id']
+            return int(match.iloc[0]) if not match.empty else None
+
+        sold_id     = get_status_id('Sold')
+        in_stock_id = get_status_id('In Stock')
+
         # Merge new statuses with current statuses
         df_final = df_final.merge(df_latest_statuses, on='inventory_id', how='left')
 
-        # Filter out records where the new status is the same as the current status
-        # This prevents inserting a new 'Sold' status if it's already 'Sold'
+        # Rule 1: Skip if new status == current status (no-op / duplicate)
         df_final = df_final[df_final['status_id'] != df_final['current_status_id']]
-        
+
+        # Rule 2: Never downgrade Sold → In Stock.
+        # Access shows 'IN' even after a QBO invoice is raised; we must not let
+        # that revert a Sold status that was set by the real-time webhook.
+        if sold_id is not None and in_stock_id is not None:
+            downgrade_mask = (
+                (df_final['current_status_id'] == sold_id) &
+                (df_final['status_id'] == in_stock_id)
+            )
+            skipped = downgrade_mask.sum()
+            if skipped:
+                print(f"Skipping 'In Stock' status for {skipped} already-sold item(s).")
+            df_final = df_final[~downgrade_mask]
+
         df_final = df_final.drop(columns=['current_status_id'])
 
         if df_final.empty:
@@ -426,6 +447,11 @@ def reconcile_invoice_line_items(engine, system_user_id):
         # This handles the pre-production scenario where invoices arrive in real-time
         # before inventory items are entered.
         unreconciled_query = """
+            WITH latest_status AS (
+                SELECT DISTINCT ON (inventory_id) inventory_id, status_id
+                FROM status_changes
+                ORDER BY inventory_id, created_at DESC
+            )
             SELECT
                 ili.tag_number,
                 ili.invoice_number,
@@ -440,6 +466,7 @@ def reconcile_invoice_line_items(engine, system_user_id):
                     WHEN ili.tag_number ~ '^[0-9]+$' THEN ili.tag_number::integer 
                     ELSE NULL 
                 END
+            LEFT JOIN latest_status ls ON ls.inventory_id = i.id
             WHERE
                 ili.tag_number IS NOT NULL
                 AND TRIM(ili.tag_number) != ''
@@ -448,10 +475,12 @@ def reconcile_invoice_line_items(engine, system_user_id):
                 -- 1. Inventory has no invoice info yet
                 -- 2. Invoice number doesn't match
                 -- 3. Sales value doesn't match
+                -- 4. The current status is NOT 'Sold'
                 AND (
                     i.invoice_number IS DISTINCT FROM ili.invoice_number
                     OR i.sales_value IS DISTINCT FROM ili.amount
                     OR i.customer_name IS DISTINCT FROM ili.customer_name
+                    OR ls.status_id IS DISTINCT FROM (SELECT id FROM statuses WHERE status_name = 'Sold' LIMIT 1)
                 )
         """
         df_unreconciled = pd.read_sql(unreconciled_query, engine)
@@ -494,22 +523,24 @@ def reconcile_invoice_line_items(engine, system_user_id):
                     'inventory_id': inventory_id
                 })
 
-                # 2. Append a Sold audit entry to status_changes IF one doesn't exist for this invoice
-                # This check prevents duplicate 'Sold' entries if the reconciliation runs multiple times.
+                # 2. Append a Sold audit entry to status_changes unless the item is ALREADY
+                # currently Sold. We intentionally check the CURRENT (most recent) status,
+                # not whether any historical Sold entry with this invoice note exists.
+                # Reason: add_status_changes may have pushed an 'In Stock' entry on top of
+                # an older Sold entry (before we fixed the ordering), so we must be willing
+                # to insert a new Sold even if one already exists in history.
                 check_status_query = """
-                    SELECT 1 FROM status_changes 
-                    WHERE inventory_id = :inventory_id 
-                    AND status_id = :status_id 
-                    AND notes LIKE :note_pattern
+                    SELECT status_id FROM status_changes
+                    WHERE inventory_id = :inventory_id
+                    ORDER BY created_at DESC
                     LIMIT 1
                 """
-                exists = conn.execute(text(check_status_query), {
-                    'inventory_id': inventory_id,
-                    'status_id': sold_status_id,
-                    'note_pattern': f'%Invoice #{invoice_number}%'
+                current = conn.execute(text(check_status_query), {
+                    'inventory_id': inventory_id
                 }).fetchone()
+                already_sold = (current is not None and current[0] == sold_status_id)
 
-                if not exists:
+                if not already_sold:
                     conn.execute(text("""
                         INSERT INTO status_changes
                             (inventory_id, status_id, updated_by, notes)
@@ -615,12 +646,15 @@ def main():
 
 
         upload_to_supabase(df_final, supabase_engine)
-        add_status_changes(df_access, supabase_engine)
 
-        # Reconcile any invoice_line_items that arrived before today's inventory.
-        # Uses the same system user as the status_changes inserts above.
+        # Reconcile invoice_line_items BEFORE writing status changes.
+        # This ensures that any invoiced items get their Sold status set first,
+        # so the subsequent add_status_changes call (Rule 2) can block the
+        # Access-driven 'In Stock' from overwriting it.
         system_user_id = '71c80b7d-61ac-47cf-9998-f482553fc54a'
         reconcile_invoice_line_items(supabase_engine, system_user_id)
+
+        add_status_changes(df_access, supabase_engine)
 
 
     except Exception as e:

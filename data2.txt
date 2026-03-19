@@ -1,0 +1,5 @@
+     tag status_name                       created_at                                       notes
+0  51174        Sold 2026-03-19 21:12:54.733214+00:00  Sold on Invoice #147608 (Retroactive Sync)
+1  51174    In Stock 2026-03-19 14:55:08.800943+00:00                                         NaN
+2  51174        Sold 2026-03-18 20:53:40.648589+00:00  Sold on Invoice #147608 (Retroactive Sync)
+3  51174    In Stock 2026-03-18 20:53:39.240943+00:00                              Initial status

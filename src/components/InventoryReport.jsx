@@ -291,7 +291,7 @@ export default function InventoryReport() {
         <thead>
           <tr>
             <th>Tag #</th>
-            <th>Invoice #</th>
+            {sortBy !== 'date' && <th>Invoice #</th>}
             <th>Date</th>
             <th>Line</th>
             <th>Product Name</th>
@@ -301,6 +301,8 @@ export default function InventoryReport() {
             <th style={{ textAlign: 'right' }}>Board Feet</th>
             <th style={{ textAlign: 'right' }}>Price ($)</th>
             <th style={{ textAlign: 'right' }}>Inv. Value ($)</th>
+            {sortBy === 'date' && <th>Invoice #</th>}
+            {sortBy === 'date' && <th>Customer</th>}
             <th className="no-print" style={{ width: '60px' }}>Actions</th>
           </tr>
         </thead>
@@ -339,7 +341,7 @@ export default function InventoryReport() {
                 }}
               >
                 <td>{row.tag}</td>
-                <td>{row.invoice_number || '-'}</td>
+                {sortBy !== 'date' && <td>{row.invoice_number || '-'}</td>}
                 <td>{formatDate(row.produced)}</td>
                 <td>{row.line}</td>
                 <td>{row.product_name}</td>
@@ -349,6 +351,8 @@ export default function InventoryReport() {
                 <td style={{ textAlign: 'right' }}>{row.boardfeet ? row.boardfeet.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.sales_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>{row.total_value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                {sortBy === 'date' && <td>{row.invoice_number || '-'}</td>}
+                {sortBy === 'date' && <td>{row.customer_name || '-'}</td>}
                 <td className='no-print' onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={(e) => handlePrintTag(row, e)}
