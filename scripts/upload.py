@@ -44,6 +44,117 @@ def connect_to_supabase():
     return create_engine(url)
 
 
+def pull_products_from_access(conn):
+    """
+    Pulls records from the Products table in Access.
+    """
+    query = "SELECT * FROM Products"
+    df_products = pd.read_sql(query, conn)
+    
+    # Clean data to prevent false misses during merging
+    if 'Product' in df_products.columns:
+        df_products['Product'] = df_products['Product'].astype(str).str.strip()
+    if 'Species' in df_products.columns:
+        df_products['Species'] = df_products['Species'].astype(str).str.strip()
+        df_products['Species'] = df_products['Species'].replace(['nan', ''], None)
+        
+    return df_products
+
+
+def upload_products_to_supabase(df_access, engine):
+    """
+    Uploads the final DataFrame to the 'products' table in Supabase,
+    performing an "upsert" based on the 'product_name' column.
+    """
+    if df_access.empty:
+        print("No products data to upload.")
+        return
+
+    try:
+        # Pull Supabase species for mapping
+        df_species = pd.read_sql("SELECT id as species_id, species_name FROM species", engine)
+        
+        # Merge Access 'Species' against Supabase 'species_name'
+        df_mapped = df_access.merge(
+            df_species,
+            left_on='Species',
+            right_on='species_name',
+            how='left'
+        )
+        
+        # Log missing species for investigation
+        missing_species = df_mapped[df_mapped['Species'].notna() & (df_mapped['Species'] != 'None') & df_mapped['species_id'].isna()]
+        if not missing_species.empty:
+            unique_missing = missing_species['Species'].unique()
+            print(f"WARNING: The following species in Access were not found in Supabase: {', '.join(unique_missing)}")
+            
+        # Map values according to specification
+        df_mapped['product_name'] = df_mapped['Product']
+        df_mapped['unit_type'] = df_mapped['Unit'] if 'Unit' in df_mapped.columns else None
+        
+        # Handle numeric defaults
+        numeric_cols = {'Price': 'unit_product_value', 'Length': 'default_length', 
+                        'Qty': 'default_quantity', 'UnitBFE': 'unit_boardfeet', 
+                        'UnitPrice': 'unit_inv_value'}
+                        
+        for access_col, sb_col in numeric_cols.items():
+            if access_col in df_mapped.columns:
+                df_mapped[sb_col] = pd.to_numeric(df_mapped[access_col], errors='coerce').fillna(0)
+            else:
+                df_mapped[sb_col] = 0.0
+                
+        # Handle menu_show (inverse of Archive)
+        if 'Archive' in df_mapped.columns:
+            df_mapped['menu_show'] = ~df_mapped['Archive'].fillna(False).astype(bool)
+        else:
+            df_mapped['menu_show'] = True
+            
+        # Select target columns
+        final_cols = [
+            'product_name', 'species_id', 'unit_type', 'unit_product_value', 
+            'default_length', 'default_quantity', 'unit_boardfeet', 
+            'unit_inv_value', 'menu_show'
+        ]
+        
+        df_final = df_mapped[final_cols].copy()
+        
+        # Drop rows with blank product names
+        df_final.replace('nan', None, inplace=True)
+        df_final.replace('None', None, inplace=True)
+        df_final.dropna(subset=['product_name'], inplace=True)
+        
+        if df_final.empty:
+            print("No valid products to upload after cleaning.")
+            return
+
+        temp_table_name = "products_temp_upsert"
+        
+        # Upload to temporary table
+        df_final.to_sql(temp_table_name, engine, if_exists='replace', index=False)
+        
+        cols = df_final.columns.tolist()
+        insert_cols_sql = ", ".join([f'"{c}"' for c in cols])
+        select_cols_sql = ", ".join([f'"{c}"' for c in cols])
+        update_sql = ", ".join([f'"{c}" = EXCLUDED."{c}"' for c in cols if c != 'product_name'])
+        
+        upsert_query = f"""
+        INSERT INTO products ({insert_cols_sql})
+        SELECT {select_cols_sql} FROM {temp_table_name}
+        ON CONFLICT (product_name) DO UPDATE SET
+            {update_sql};
+        """
+        
+        with engine.begin() as conn:
+            result = conn.execute(text(upsert_query))
+            print(f"Products sync complete. Uploaded {len(df_final)} products to Supabase.")
+            
+    except Exception as e:
+        print(f"An error occurred during products upsert: {e}")
+    finally:
+        with engine.begin() as conn:
+            conn.execute(text(f"DROP TABLE IF EXISTS products_temp_upsert;"))
+
+
 def pull_data_from_access(conn, current_date):
     """
     Pulls records from the TicketTbl that are either 'In Stock' ('IN')
@@ -476,27 +587,23 @@ def main():
 
     # 2. RUN ETL PROCESS
 
-
     try:
-
+        # Sync Products first
+        print("Syncing Products table...")
+        df_access_products = pull_products_from_access(access_conn)
+        upload_products_to_supabase(df_access_products, supabase_engine)
 
         current_date = datetime.now().date()
 
-
         df_access = pull_data_from_access(access_conn, current_date)
 
-
-        print(f"Pulled {len(df_access)} records from Access.")
-
+        print(f"Pulled {len(df_access)} inventory records from Access.")
 
         
-
 
         df_products, df_species = pull_lookup_data_from_supabase(supabase_engine)
 
-
         
-
 
         df_final = map_and_transform_data(df_access, df_products, df_species)
 
