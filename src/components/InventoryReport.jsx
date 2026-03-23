@@ -13,11 +13,12 @@ export default function InventoryReport() {
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [printingTagData, setPrintingTagData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
 
   // --- Filters ---
   const [sortBy, setSortBy] = useState('product');
   const [lineFilter, setLineFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('In Stock');
   const [dateRange, setDateRange] = useState('This Week');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -45,6 +46,18 @@ export default function InventoryReport() {
       } else {
         setReportData(data || []);
       }
+
+      // 3. Fetch Active System Alerts
+      const { data: alertsData, error: alertsError } = await supabase
+        .from('system_alerts')
+        .select('*')
+        .eq('resolved', false)
+        .order('created_at', { ascending: false });
+      
+      if (!alertsError) {
+        setAlerts(alertsData || []);
+      }
+
       setLoading(false);
     }
     fetchData();
@@ -63,6 +76,30 @@ export default function InventoryReport() {
   const handlePrintTag = (row, e) => {
     e.stopPropagation();
     setPrintingTagData(row);
+  };
+
+  const handleAcknowledgeAlert = async (alertId) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+
+      const { error } = await supabase
+        .from('system_alerts')
+        .update({
+          resolved: true,
+          resolved_by: userId,
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', alertId);
+
+      if (error) throw error;
+
+      // Remove from UI
+      setAlerts(prevAlerts => prevAlerts.filter(a => a.id !== alertId));
+    } catch (error) {
+      console.error('Error acknowledging alert:', error);
+      alert('Failed to acknowledge alert.');
+    }
   };
 
   const processedReport = useMemo(() => {
@@ -275,7 +312,15 @@ export default function InventoryReport() {
 
           <div className="filter-group">
             <label className="filter-label">Sort</label>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ padding: '5px' }}>
+            <select 
+              value={sortBy} 
+              onChange={(e) => {
+                const newSort = e.target.value;
+                setSortBy(newSort);
+                setStatusFilter(newSort === 'product' ? 'In Stock' : 'All');
+              }} 
+              style={{ padding: '5px' }}
+            >
               <option value="date">Date</option>
               <option value="product">Product (Subtotaled)</option>
             </select>
@@ -286,6 +331,29 @@ export default function InventoryReport() {
           </button>
         </div>
       </div>
+
+      {alerts.length > 0 && (
+        <div className="no-print" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '5px', color: '#856404' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '10px' }}>⚠️ System Alerts ({alerts.length})</h3>
+          <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+            {alerts.map(alert => (
+              <li key={alert.id} style={{ marginBottom: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #ffd579' }}>
+                <div>
+                  <strong style={{ display: 'block', marginBottom: '4px' }}>{alert.title}</strong>
+                  <span>{alert.message}</span>
+                  {alert.target_role && <span style={{ marginLeft: '10px', fontSize: '10px', backgroundColor: '#e9ecef', padding: '2px 6px', borderRadius: '10px', color: '#495057' }}>Role: {alert.target_role}</span>}
+                </div>
+                <button
+                  onClick={() => handleAcknowledgeAlert(alert.id)}
+                  style={{ padding: '6px 12px', backgroundColor: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                  Acknowledge
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <table className="report-table">
         <thead>
