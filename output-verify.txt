@@ -1,0 +1,33 @@
+--- RECENT SYSTEM ALERTS ---
+
+Alert ID 6 | Title: Duplicate Sale on Same Invoice
+Message: Tag #50231 was added multiple times to Invoice #147626
+  --> Checking invoice_line_items for Tag 50231:
+      1. ID: 6cee443a-bbb5-45a1-a52e-ba0f8d866f13 | Invoice: 147626 | Tag: 50231 | Amount: 524.16
+      2. ID: 879f09ee-e32b-4e71-8a1d-3f09c31e3036 | Invoice: 147626 | Tag: 50231 | Amount: 524.16
+  --> Checking inventory record for Tag 50231:
+      Inventory ID: 2630 | Current Invoice: 147626 | Sales Value: 524.16
+
+Alert ID 5 | Title: Duplicate Sale on Same Invoice
+Message: Tag #51238 was added multiple times to Invoice #147626
+  --> Checking invoice_line_items for Tag 51238:
+      1. ID: 47518872-39c8-49fa-904c-c15553aa444b | Invoice: 147626 | Tag: 51238 | Amount: 362.88
+      2. ID: 464ba232-8e3a-40ab-a678-059164c3e66a | Invoice: 147626 | Tag: 51238 | Amount: 362.88
+  --> Checking inventory record for Tag 51238:
+      Inventory ID: 16424 | Current Invoice: 147626 | Sales Value: 362.88
+
+Alert ID 4 | Title: Duplicate Sale on Same Invoice
+Message: Tag #51215 was added multiple times to Invoice #147626
+  --> Checking invoice_line_items for Tag 51215:
+      1. ID: 5a55302d-a5a6-49bf-93ef-ed573b147d89 | Invoice: 147626 | Tag: 51215 | Amount: 524.16
+      2. ID: a792f62f-0696-4f82-add0-e11a2cce3472 | Invoice: 147626 | Tag: 51215 | Amount: 524.16
+  --> Checking inventory record for Tag 51215:
+      Inventory ID: 12036 | Current Invoice: 147626 | Sales Value: 524.16
+
+Alert ID 3 | Title: Duplicate Sale on Same Invoice
+Message: Tag #51268 was added multiple times to Invoice #147626
+  --> Checking invoice_line_items for Tag 51268:
+      1. ID: 03de3272-082f-41bd-8107-74b78cffaeb0 | Invoice: 147626 | Tag: 51268 | Amount: 458.64
+      2. ID: fdb9d960-23f7-4430-9a05-dc630bd3a0c6 | Invoice: 147626 | Tag: 51268 | Amount: 458.64
+  --> Checking inventory record for Tag 51268:
+      Inventory ID: 16964 | Current Invoice: 147626 | Sales Value: 458.64

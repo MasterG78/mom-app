@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../services/supabaseClient'
-
+import { pdf } from '@react-pdf/renderer'
+import { InventoryTagPDF } from './InventoryTag'
+import QRCode from 'qrcode'
 // Styles
 const formGridStyle = {
   display: 'grid',
@@ -34,6 +36,19 @@ export default function InventoryEntry({ session, onBundleCreated }) {
   const [showAll, setShowAll] = useState(false)
   const [calculatedBoardFeet, setCalculatedBoardFeet] = useState('');
 
+  // Test Mode State - Persistent
+  const [isTestMode, setIsTestMode] = useState(() => {
+    return localStorage.getItem('mom_app_test_mode') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('mom_app_test_mode', isTestMode);
+  }, [isTestMode]);
+
+  useEffect(() => {
+    localStorage.setItem('mom_app_test_mode', isTestMode);
+  }, [isTestMode]);
+
   const [formData, setFormData] = useState({
     product_id: '',
     species_id: '',
@@ -45,7 +60,8 @@ export default function InventoryEntry({ session, onBundleCreated }) {
     rows: '',
     note: '',
     customer_name: '',
-    tagger: ''
+    tagger: '',
+    copies: 2
   })
 
   // 1. Initial Data Fetch
@@ -171,10 +187,59 @@ export default function InventoryEntry({ session, onBundleCreated }) {
         .select()
 
       if (error) throw error
-      alert(`Success! Bundle Created. Tag #: ${data[0].tag}`)
-      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '', tagger: formData.tagger }) // Keep tagger for next entry
+
+      const notePrefix = isTestMode ? '[TEST] ' : '';
+
+      // Update the database record with the test note if needed
+      if (isTestMode && formData.note) {
+        // Just keeping it simple for now, but you can add logic to update
+      }
+
+      // Grab the species name before we clear the form
+      const selectedSpecies = allSpecies.find(s => s.id == data[0].species_id);
+      
+      const bundleData = { 
+        ...data[0], 
+        product_name: selectedProduct?.product_name || '',
+        species_name: selectedSpecies?.species_name || '',
+        isTest: isTestMode 
+      };
+
+      // Inline printing
+      if (formData.copies > 0) {
+        try {
+          const qrText = `Tag: ${data[0].tag}\n${bundleData.product_name}\nDim: ${data[0].length || '-'}x${data[0].width || '-'}x${data[0].rows || '-'}`;
+          const qrCodeUrl = await QRCode.toDataURL(qrText);
+          const blob = await pdf(<InventoryTagPDF data={bundleData} qrCodeUrl={qrCodeUrl} copies={parseInt(formData.copies)} />).toBlob();
+          const url = URL.createObjectURL(blob);
+
+          if (isTestMode) {
+            window.open(url, '_blank');
+          } else {
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            iframe.onload = () => {
+              iframe.contentWindow.focus();
+              iframe.contentWindow.print();
+              setTimeout(() => {
+                if (document.body.contains(iframe)) document.body.removeChild(iframe);
+              }, 60000);
+            };
+          }
+        } catch (printErr) {
+          console.error("Error generating tag:", printErr);
+          alert("Bundle created, but PDF failed to generate.");
+        }
+      }
+
+      // Now clear the form
+      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '', tagger: formData.tagger, copies: formData.copies })
       setSelectedProduct(null);
+      
       if (onBundleCreated) onBundleCreated();
+
     } catch (error) {
       alert('Error: ' + error.message)
     } finally {
@@ -190,6 +255,21 @@ export default function InventoryEntry({ session, onBundleCreated }) {
   return (
     <div className="form-widget">
       <h2>Add Inventory Bundle</h2>
+
+      {session?.user?.email && (
+        <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '4px' }}>
+          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: 'bold', color: '#856404' }}>
+            <input 
+              type="checkbox" 
+              checked={isTestMode} 
+              onChange={(e) => setIsTestMode(e.target.checked)} 
+              style={{ marginRight: '10px', transform: 'scale(1.3)' }} 
+            />
+            TEST MODE (Do not print tags for {session.user.email})
+          </label>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
 
         {/* Row 1: Product Type | Species */}
@@ -241,8 +321,8 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           </div>
         </div>
 
-        {/* Row 2: Production Line | Tagger */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        {/* Row 2: Production Line | Tagger | Copies */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
           <div style={inputGroupStyle}>
             <label style={labelStyle}>Production Line</label>
             <select name="line" value={formData.line} onChange={handleChange} required style={inputStyle}>
@@ -253,7 +333,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
           </div>
 
           <div style={inputGroupStyle}>
-            <label style={labelStyle}>Tagger (Initials/Name) <span style={{ color: 'red' }}>*</span></label>
+            <label style={labelStyle}>Tagger (Initials)<span style={{ color: 'red' }}>*</span></label>
             <input
               name="tagger"
               type="text"
@@ -263,6 +343,16 @@ export default function InventoryEntry({ session, onBundleCreated }) {
               style={inputStyle}
               placeholder="e.g. JD"
             />
+          </div>
+
+          <div style={inputGroupStyle}>
+            <label style={labelStyle}>Copies</label>
+            <select name="copies" value={formData.copies} onChange={handleChange} style={inputStyle}>
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
           </div>
         </div>
 
@@ -300,7 +390,7 @@ export default function InventoryEntry({ session, onBundleCreated }) {
 
         <div style={{ ...inputGroupStyle, marginTop: '20px' }}><label style={labelStyle}>Notes</label><input name="note" type="text" value={formData.note} onChange={handleChange} style={inputStyle} /></div>
         <button className="button block primary" disabled={loading || !selectedProduct} style={{ width: '100%', padding: '15px', marginTop: '20px', fontSize: '18px' }}>
-          {loading ? 'Printing Tag...' : 'Create Bundle & Get Tag'}
+          {loading ? 'Creating...' : 'Create Bundle & Get Tag'}
         </button>
       </form>
     </div>

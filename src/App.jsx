@@ -10,24 +10,53 @@ import Export from './components/Export'
 
 export default function App() {
   const [session, setSession] = useState(null)
+  const [userRole, setUserRole] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   // NAVIGATION control ('entry', 'products', or 'reports')
   const [view, setView] = useState('entry')
 
+  const fetchUserRole = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching role:', error);
+      }
+      
+      setUserRole(data?.role || 'unauthorized'); // Default to locked out if no row exists
+    } catch (err) {
+      console.error('Unexpected error fetching role:', err);
+      setUserRole('unauthorized');
+    }
+  };
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      if (session?.user?.id) fetchUserRole(session.user.id)
     })
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      if (session?.user?.id) {
+        fetchUserRole(session.user.id)
+      } else {
+        setUserRole(null)
+        setView('entry') // reset view on logout
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const canManage = userRole === 'admin' || userRole === 'office';
 
   const triggerListRefresh = () => {
     setRefreshKey(prevKey => prevKey + 1)
@@ -57,13 +86,38 @@ export default function App() {
     @media print {
       .no-print { display: none !important; }
     }
+    .unauthorized-box {
+      background-color: #f8dbdb;
+      color: #900;
+      padding: 30px;
+      border-radius: 8px;
+      border: 1px solid #dca7a7;
+      text-align: center;
+      margin-top: 50px;
+    }
   `;
+
+  // Determine if the user has NO recognized role yet (or hasn't loaded)
+  // If userRole is null, we are fetching it. If userRole === 'unauthorized', they are blocked.
+  const isUnauthorized = session && userRole === 'unauthorized';
 
   return (
     <div className="container" style={{ padding: '50px 0 100px 0' }}>
       <style>{globalStyles}</style>
       {!session ? (
         <Auth />
+      ) : isUnauthorized ? (
+        <div className="unauthorized-box">
+          <h2>Access Denied</h2>
+          <p>You are not currently authorized to access this application.</p>
+          <p>You must sign in with a company email (@mountainoakmill.com) or contact an administrator to provision your account.</p>
+          <button 
+            style={{ marginTop: '20px', ...navButtonStyle(false), backgroundColor: '#dc3545', color: 'white' }} 
+            onClick={() => supabase.auth.signOut()}
+          >
+            Sign Out
+          </button>
+        </div>
       ) : (
         <>
           {/* NAVIGATION MENU */}
@@ -74,30 +128,36 @@ export default function App() {
             >
               Inventory Entry
             </button>
-            <button
-              style={navButtonStyle(view === 'products')}
-              onClick={() => setView('products')}
-            >
-              Manage Products
-            </button>
-            <button
-              style={navButtonStyle(view === 'reports')}
-              onClick={() => setView('reports')}
-            >
-              Reports
-            </button>
+            {canManage && (
+              <button
+                style={navButtonStyle(view === 'products')}
+                onClick={() => setView('products')}
+              >
+                Manage Products
+              </button>
+            )}
+            {canManage && (
+              <button
+                style={navButtonStyle(view === 'reports')}
+                onClick={() => setView('reports')}
+              >
+                Reports
+              </button>
+            )}
             <button
               style={navButtonStyle(view === 'production')}
               onClick={() => setView('production')}
             >
               Production
             </button>
-            <button
-              style={navButtonStyle(view === 'export')}
-              onClick={() => setView('export')}
-            >
-              Export
-            </button>
+            {canManage && (
+              <button
+                style={navButtonStyle(view === 'export')}
+                onClick={() => setView('export')}
+              >
+                Export
+              </button>
+            )}
 
             <button
               onClick={() => supabase.auth.signOut()}
@@ -107,27 +167,27 @@ export default function App() {
             </button>
           </nav>
 
-          {/* CONDITIONAL RENDERING BASED ON VIEW */}
-          {view === 'entry' && (
+          {/* CONDITIONAL RENDERING BASED ON VIEW AND ROLE */}
+          {userRole !== null && view === 'entry' && (
             <>
               <InventoryEntry session={session} onBundleCreated={triggerListRefresh} />
               <InventoryList key={refreshKey} />
             </>
           )}
 
-          {view === 'products' && (
+          {canManage && view === 'products' && (
             <ProductManager />
           )}
 
-          {view === 'reports' && (
+          {canManage && view === 'reports' && (
             <InventoryReport />
           )}
 
-          {view === 'production' && (
+          {userRole !== null && view === 'production' && (
             <ProductionReport />
           )}
 
-          {view === 'export' && (
+          {canManage && view === 'export' && (
             <Export />
           )}
         </>

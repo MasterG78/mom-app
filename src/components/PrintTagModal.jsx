@@ -27,9 +27,30 @@ export default function PrintTagModal({
       if (actionType === 'download') {
         saveAs(blob, `tag_${data.tag}.pdf`);
       } else if (actionType === 'print') {
-        // Create an Object URL to open in a new tab for native printing/viewing
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        
+        if (data.isTest) {
+          // TEST MODE: Just open the PDF in a new tab to look at it
+          window.open(url, '_blank');
+        } else {
+          // NORMAL MODE: Auto-Print Trick
+          // Create an invisible iframe, load the PDF, and force the browser print dialog
+          const iframe = document.createElement('iframe');
+          iframe.style.display = 'none';
+          iframe.src = url;
+          document.body.appendChild(iframe);
+          
+          iframe.onload = () => {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+            // Optional: clean up the iframe after giving the dialog time to open
+            setTimeout(() => {
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+            }, 60000); // 1 minute
+          };
+        }
       }
     } catch (error) {
       console.error('Error generating tag:', error);

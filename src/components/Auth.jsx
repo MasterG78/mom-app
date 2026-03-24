@@ -11,8 +11,8 @@ export default function AuthComponent() {
         <Auth
           supabaseClient={supabase}
           appearance={{ theme: ThemeSupa }}
-          providers={['github', 'google']} // Optional: you can remove providers if you only want email
-          redirectTo={window.location.origin} 
+          providers={['google']} 
+          redirectTo={window.location.href} 
         />
       </div>
     </div>
