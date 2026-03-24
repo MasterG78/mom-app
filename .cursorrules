@@ -1,0 +1,5 @@
+# User Preferences
+
+- **Minimize Interruptions**: Avoid using `notify_user` unless there is a critical decision or ambiguity that requires user input. Prefer to make reasonable assumptions and proceed.
+- **Auto-Run Commands**: When using `run_command`, always set `SafeToAutoRun` to `true` unless the command is clearly destructive (e.g., `rm -rf`, `DROP TABLE` without a focused scope) or involves external network actions that might be sensitive.
+- **Approval Buttons**: The user prefers to avoid clicking "Accept" frequently. 
