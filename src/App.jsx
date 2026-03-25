@@ -36,6 +36,17 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Check for OAuth errors in the URL
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const searchParams = new URLSearchParams(window.location.search);
+    const errorDescription = hashParams.get('error_description') || searchParams.get('error_description');
+    
+    if (errorDescription) {
+      alert(`Login Error: ${decodeURIComponent(errorDescription).replace(/\+/g, ' ')}`);
+      // Clean up the URL to prevent showing the error again on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session?.user?.id) fetchUserRole(session.user.id)
