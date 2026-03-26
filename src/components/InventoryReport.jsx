@@ -34,17 +34,35 @@ export default function InventoryReport() {
         .order('status_name');
       setStatusOptions(statusList || []);
 
-      // 2. Fetch the Report View
-      const { data, error } = await supabase
-        .from('inventory_report_view')
-        .select('*')
-        .order('produced', { ascending: false });
+      // 2. Fetch the Report View (paginated to bypass 1000-row PostgREST limit)
+      let allData = [];
+      let from = 0;
+      const pageSize = 1000;
+      let fetchError = null;
 
-      if (error) {
-        console.error('Error fetching view:', error);
+      while (true) {
+        const { data: page, error: pageError } = await supabase
+          .from('inventory_report_view')
+          .select('*')
+          .order('produced', { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (pageError) {
+          fetchError = pageError;
+          break;
+        }
+
+        allData = allData.concat(page || []);
+
+        if (!page || page.length < pageSize) break;
+        from += pageSize;
+      }
+
+      if (fetchError) {
+        console.error('Error fetching view:', fetchError);
         alert('Error loading report view.');
       } else {
-        setReportData(data || []);
+        setReportData(allData);
       }
 
       // 3. Fetch Active System Alerts
@@ -171,6 +189,26 @@ export default function InventoryReport() {
         // Secondary sort by Tag (Numeric)
         return (a.tag || '').toString().localeCompare((b.tag || '').toString(), undefined, { numeric: true });
       });
+
+      let gTotalVal = 0, gTotalBf = 0, gTotalQty = 0, gTotalPrice = 0;
+      data.forEach(item => {
+        gTotalVal += parseFloat(item.total_value) || 0;
+        gTotalBf += parseFloat(item.boardfeet) || 0;
+        gTotalQty += parseFloat(item.quantity) || 0;
+        gTotalPrice += parseFloat(item.sales_value) || 0;
+      });
+
+      if (data.length > 0) {
+        data.push({
+          isGrandTotal: true,
+          label: 'GRAND TOTAL',
+          value: gTotalVal,
+          bf: gTotalBf,
+          qty: gTotalQty,
+          price: gTotalPrice
+        });
+      }
+      return data;
     }
 
     if (sortBy === 'product') {
@@ -379,22 +417,26 @@ export default function InventoryReport() {
             // --- Grand Total Row ---
             if (row.isGrandTotal) return (
               <tr key="grand" className="grand-total-row">
-                <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
-                <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
-                <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
-                <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td colSpan={sortBy === 'date' ? 5 : 6} style={{ textAlign: 'right' }}>{row.label}</td>
+                <td style={{ textAlign: 'right' }}>{sortBy !== 'date' && row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
+                <td style={{ textAlign: 'right' }}>{sortBy !== 'date' && row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
+                <td style={{ textAlign: 'right' }}>{sortBy !== 'date' && row.price > 0 ? '$' + row.price.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                {sortBy === 'date' && <td></td>}
+                {sortBy === 'date' && <td></td>}
                 <td className="no-print"></td>
               </tr>
             );
             // --- Subtotal Row ---
             if (row.isSubtotal) return (
               <tr key={`sub-${idx}`} className="subtotal-row">
-                <td colSpan="6" style={{ textAlign: 'right' }}>{row.label}</td>
+                <td colSpan={sortBy === 'date' ? 5 : 6} style={{ textAlign: 'right' }}>{row.label}</td>
                 <td style={{ textAlign: 'right' }}>{row.qty > 0 ? row.qty.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>{row.bf > 0 ? row.bf.toLocaleString() : '-'}</td>
                 <td style={{ textAlign: 'right' }}>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td style={{ textAlign: 'right' }}>${row.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                {sortBy === 'date' && <td></td>}
+                {sortBy === 'date' && <td></td>}
                 <td className="no-print"></td>
               </tr>
             );

@@ -47,7 +47,8 @@ export default function InventoryList() {
             <th style={{ padding: '8px', textAlign: 'left' }}>Tag #</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Line</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
-            <th style={{ padding: '8px', textAlign: 'left' }}>Quantity</th>
+            <th style={{ padding: '8px', textAlign: 'left' }}>Qty</th>
+            <th style={{ padding: '8px', textAlign: 'left' }}>BdFt</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Tagger (Name)</th>
           </tr>
         </thead>
@@ -65,9 +66,8 @@ export default function InventoryList() {
               <td style={{ padding: '8px' }}>{bundle.tag}</td>
               <td style={{ padding: '8px', fontWeight: 'bold' }}>{bundle.line || '-'}</td> {/* NEW CELL */}
               <td style={{ padding: '8px' }}>{bundle.product_name}</td>
-              <td style={{ padding: '8px' }}>
-                {bundle.boardfeet || bundle.quantity}
-              </td>
+              <td style={{ padding: '8px' }}>{bundle.quantity || '-'}</td>
+              <td style={{ padding: '8px' }}>{bundle.boardfeet || '-'}</td>
               <td style={{ padding: '8px' }}>{bundle.tagger_name}</td>
             </tr>
           ))}

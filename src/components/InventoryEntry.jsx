@@ -389,7 +389,20 @@ export default function InventoryEntry({ session, onBundleCreated }) {
         )}
 
         <div style={{ ...inputGroupStyle, marginTop: '20px' }}><label style={labelStyle}>Notes</label><input name="note" type="text" value={formData.note} onChange={handleChange} style={inputStyle} /></div>
-        <button className="button block primary" disabled={loading || !selectedProduct} style={{ width: '100%', padding: '15px', marginTop: '20px', fontSize: '18px' }}>
+        <button 
+          className="button block primary" 
+          disabled={loading || !selectedProduct} 
+          style={{ 
+            width: '100%', 
+            padding: '15px', 
+            marginTop: '20px', 
+            fontSize: '18px',
+            backgroundColor: (loading || !selectedProduct) ? '#e0e0e0' : '#007bff',
+            color: (loading || !selectedProduct) ? '#888' : '#ffffff',
+            border: 'none',
+            fontWeight: 'bold'
+          }}
+        >
           {loading ? 'Creating...' : 'Create Bundle & Get Tag'}
         </button>
       </form>

@@ -1,0 +1,62 @@
+=== INVENTORY TABLE DATE RANGE ===
+Earliest: 2021-01-13 00:00:00+00:00
+Latest:   2026-03-25 00:00:00+00:00
+Total:    1595
+
+=== REPORT VIEW ROW COUNT ===
+Total: 1595
+
+=== REPORT VIEW DATE RANGE ===
+Earliest: 2021-01-13 00:00:00+00:00
+Latest:   2026-03-25 00:00:00+00:00
+
+=== VIEW DEFINITION ===
+ SELECT i.id,
+    i.tag,
+    i.invoice_number,
+    i.line,
+    i.produced,
+    p.product_name,
+    i.boardfeet,
+    i.quantity,
+    s.status_name AS current_status,
+    i.inventory_value AS total_value,
+    i.sales_value,
+    i.customer_name,
+    i.length,
+    i.width,
+    i.rows,
+    i.note,
+    sp.species_name
+   FROM inventory i
+     LEFT JOIN products p ON i.product_id = p.id
+     LEFT JOIN species sp ON i.species_id = sp.id
+     LEFT JOIN ( SELECT DISTINCT ON (status_changes.inventory_id) status_changes.inventory_id,
+            status_changes.status_id
+           FROM status_changes
+          ORDER BY status_changes.inventory_id, status_changes.created_at DESC) latest_status ON i.id = latest_status.inventory_id
+     LEFT JOIN statuses s ON latest_status.status_id = s.id;
+
+=== 10 OLDEST INVENTORY RECORDS ===
+  Tag: 98048, Produced: 2021-01-13 00:00:00+00:00
+  Tag: 98049, Produced: 2021-01-13 00:00:00+00:00
+  Tag: 98045, Produced: 2021-01-13 00:00:00+00:00
+  Tag: 10230, Produced: 2021-04-28 00:00:00+00:00
+  Tag: 38886, Produced: 2025-01-03 00:00:00+00:00
+  Tag: 38879, Produced: 2025-01-03 00:00:00+00:00
+  Tag: 38893, Produced: 2025-01-03 00:00:00+00:00
+  Tag: 38880, Produced: 2025-01-03 00:00:00+00:00
+  Tag: 38904, Produced: 2025-01-06 00:00:00+00:00
+  Tag: 38938, Produced: 2025-01-07 00:00:00+00:00
+
+=== 10 OLDEST REPORT VIEW RECORDS ===
+  Tag: 98048, Produced: 2021-01-13 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 98049, Produced: 2021-01-13 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 98045, Produced: 2021-01-13 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 10230, Produced: 2021-04-28 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38893, Produced: 2025-01-03 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38879, Produced: 2025-01-03 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38880, Produced: 2025-01-03 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38886, Produced: 2025-01-03 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38904, Produced: 2025-01-06 00:00:00+00:00, Product: None, Status: In Stock
+  Tag: 38938, Produced: 2025-01-07 00:00:00+00:00, Product: None, Status: In Stock
