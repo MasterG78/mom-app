@@ -7,16 +7,29 @@ import ProductManager from './components/ProductManager'
 import InventoryReport from './components/InventoryReport'
 import ProductionReport from './components/Production'
 import Export from './components/Export'
+import PrintTagModal from './components/PrintTagModal'
+
+const mockData = {
+  tag: '999999',
+  product_name: '2x4x8 PREMIUM PINE S4S',
+  boardfeet: 128,
+  species_name: 'SYP PREMIUM',
+  line: 'TEST-A',
+  produced: new Date().toISOString()
+};
 
 export default function App() {
   const [session, setSession] = useState(null)
-  const [userRole, setUserRole] = useState(null)
+  const [userRole, setUserRole] = useState(null) // Database role
+  const [effectiveRole, setEffectiveRole] = useState(null) // Active role (can be changed by admin)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [loading, setLoading] = useState(true) // Initial loading state
 
   // NAVIGATION control ('entry', 'products', or 'reports')
   const [view, setView] = useState('entry')
 
-  const fetchUserRole = async (userId) => {
+  const fetchUserRole = async (userId, userEmail) => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('user_roles')
@@ -24,14 +37,21 @@ export default function App() {
         .eq('id', userId)
         .single();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching role:', error);
+      let initialRole = 'unauthorized';
+      if (data?.role) {
+        initialRole = data.role;
+      } else if (userEmail && userEmail.endsWith('@mountainoakmill.com')) {
+        initialRole = 'mill'; // Default company users to mill
       }
-      
-      setUserRole(data?.role || 'unauthorized'); // Default to locked out if no row exists
+
+      setUserRole(initialRole);
+      setEffectiveRole(initialRole); // Initially same as database role
     } catch (err) {
       console.error('Unexpected error fetching role:', err);
       setUserRole('unauthorized');
+      setEffectiveRole('unauthorized');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,7 +69,11 @@ export default function App() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session?.user?.id) fetchUserRole(session.user.id)
+      if (session?.user?.id) {
+        fetchUserRole(session.user.id, session.user.email)
+      } else {
+        setLoading(false);
+      }
     })
 
     const {
@@ -57,17 +81,21 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session?.user?.id) {
-        fetchUserRole(session.user.id)
+        fetchUserRole(session.user.id, session.user.email)
       } else {
         setUserRole(null)
-        setView('entry') // reset view on logout
+        setEffectiveRole(null)
+        setView('entry')
+        setLoading(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
-  const canManage = userRole === 'admin' || userRole === 'office';
+  // Base permission checks on effectiveRole
+  const canManage = effectiveRole === 'admin' || effectiveRole === 'office';
+  const isTest = effectiveRole === 'test';
 
   const triggerListRefresh = () => {
     setRefreshKey(prevKey => prevKey + 1)
@@ -109,13 +137,12 @@ export default function App() {
   `;
 
   // Determine if the user has NO recognized role yet (or hasn't loaded)
-  // If userRole is null, we are fetching it. If userRole === 'unauthorized', they are blocked.
-  const isUnauthorized = session && userRole === 'unauthorized';
+  const isUnauthorized = session && !loading && effectiveRole === 'unauthorized';
 
   return (
-    <div className="container" style={{ padding: '50px 0 100px 0' }}>
+    <div className="container">
       <style>{globalStyles}</style>
-      {!session ? (
+      {false ? (
         <Auth />
       ) : isUnauthorized ? (
         <div className="unauthorized-box">
@@ -178,10 +205,28 @@ export default function App() {
             </button>
           </nav>
 
+          {/* ADMIN ROLE ADAPTER */}
+          {userRole === 'admin' && (
+            <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#e7f3ff', border: '1px solid #b3d7ff', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span style={{ fontWeight: 'bold', color: '#0056b3' }}>Admin Simulation Mode:</span>
+              <select 
+                value={effectiveRole} 
+                onChange={(e) => setEffectiveRole(e.target.value)}
+                style={{ padding: '5px 10px', borderRadius: '4px', border: '1px solid #007bff' }}
+              >
+                <option value="admin">Admin (All Access)</option>
+                <option value="office">Office (Manage/Report)</option>
+                <option value="mill">Mill (Entry/Production)</option>
+                <option value="test">Test Role (Mock Labels)</option>
+              </select>
+              <span style={{ fontSize: '12px', color: '#666' }}>Switch roles to test different permissions.</span>
+            </div>
+          )}
+
           {/* CONDITIONAL RENDERING BASED ON VIEW AND ROLE */}
-          {userRole !== null && view === 'entry' && (
+          {effectiveRole !== null && view === 'entry' && (
             <>
-              <InventoryEntry session={session} onBundleCreated={triggerListRefresh} />
+              <InventoryEntry session={session} onBundleCreated={triggerListRefresh} isTest={isTest} />
               <InventoryList key={refreshKey} />
             </>
           )}
@@ -194,7 +239,7 @@ export default function App() {
             <InventoryReport />
           )}
 
-          {userRole !== null && view === 'production' && (
+          {effectiveRole !== null && view === 'production' && (
             <ProductionReport />
           )}
 
