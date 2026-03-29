@@ -8,6 +8,7 @@ import InventoryReport from './components/InventoryReport'
 import ProductionReport from './components/Production'
 import Export from './components/Export'
 import PrintTagModal from './components/PrintTagModal'
+import InventoryManager from './components/InventoryManager'
 
 const mockData = {
   tag: '999999',
@@ -25,7 +26,7 @@ export default function App() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [loading, setLoading] = useState(true) // Initial loading state
 
-  // NAVIGATION control ('entry', 'products', or 'reports')
+  // NAVIGATION control ('entry', 'products', 'reports', or 'manager')
   const [view, setView] = useState('entry')
 
   const fetchUserRole = async (userId, userEmail) => {
@@ -170,6 +171,14 @@ export default function App() {
             </button>
             {canManage && (
               <button
+                style={navButtonStyle(view === 'manager')}
+                onClick={() => setView('manager')}
+              >
+                Tag Lookup
+              </button>
+            )}
+            {canManage && (
+              <button
                 style={navButtonStyle(view === 'products')}
                 onClick={() => setView('products')}
               >
@@ -231,6 +240,10 @@ export default function App() {
               <InventoryEntry session={session} onBundleCreated={triggerListRefresh} isTest={isTest} />
               <InventoryList key={refreshKey} />
             </>
+          )}
+
+          {canManage && view === 'manager' && (
+            <InventoryManager isTest={isTest} />
           )}
 
           {canManage && view === 'products' && (
