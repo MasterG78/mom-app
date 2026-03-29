@@ -142,7 +142,9 @@ export default function App() {
   return (
     <div className="container">
       <style>{globalStyles}</style>
-      {false ? (
+      {loading ? (
+        <div style={{ textAlign: 'center', marginTop: '100px' }}>Loading application...</div>
+      ) : !session ? (
         <Auth />
       ) : isUnauthorized ? (
         <div className="unauthorized-box">

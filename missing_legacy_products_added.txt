@@ -1,2 +1,32 @@
 Products added back for legacy tags (can be removed later):
 nan
+IS CMat12 8x10
+IS CMat12 8x8
+IS CMat14 10x12
+IS CMat14 12x12
+IS CMat14 6x12
+IS CMat14 6x8
+IS CMat14 8x10
+IS CMat14 8x8
+IS CMat16 6x8
+IS CMat16 8x8
+IS CMat18 10x12
+IS CMat18 12x12
+IS CMat18 6x8
+IS CMat18 8x10
+IS CMat18 8x12
+IS CMat20 12x12
+IS CMat20 14x12
+IS CMat20 16x12
+IS CMat20 18x12
+IS CMat24 10x12
+IS CMat24 12x12
+IS CMat24 14x12
+IS CMat24 8x12
+IS Ties12
+Premat
+Ties9 7x9
+VD CMat14 6x12
+VD Crane Mat 20'x4'x12" FN
+VD Crossties9 7x9
+VD IS CMat24 12x12

@@ -16,9 +16,9 @@ export default function InventoryReport() {
   const [alerts, setAlerts] = useState([]);
 
   // --- Filters ---
-  const [sortBy, setSortBy] = useState('product');
+  const [sortBy, setSortBy] = useState('date');
   const [lineFilter, setLineFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('In Stock');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [dateRange, setDateRange] = useState('This Week');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
@@ -186,8 +186,8 @@ export default function InventoryReport() {
         if (datePartA !== datePartB) {
           return datePartB.localeCompare(datePartA);
         }
-        // Secondary sort by Tag (Numeric)
-        return (a.tag || '').toString().localeCompare((b.tag || '').toString(), undefined, { numeric: true });
+        // Secondary sort by Tag (Numeric) Descending
+        return (b.tag || '').toString().localeCompare((a.tag || '').toString(), undefined, { numeric: true });
       });
 
       let gTotalVal = 0, gTotalBf = 0, gTotalQty = 0, gTotalPrice = 0;

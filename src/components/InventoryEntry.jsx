@@ -27,7 +27,7 @@ const inputStyle = {
   padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px',
 };
 
-export default function InventoryEntry({ session, onBundleCreated }) {
+export default function InventoryEntry({ session, onBundleCreated, isTest }) {
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState([])
   const [allSpecies, setAllSpecies] = useState([])
@@ -36,18 +36,8 @@ export default function InventoryEntry({ session, onBundleCreated }) {
   const [showAll, setShowAll] = useState(false)
   const [calculatedBoardFeet, setCalculatedBoardFeet] = useState('');
 
-  // Test Mode State - Persistent
-  const [isTestMode, setIsTestMode] = useState(() => {
-    return localStorage.getItem('mom_app_test_mode') === 'true';
-  });
+  // Removed local isTestMode state - now using isTest prop from App.jsx
 
-  useEffect(() => {
-    localStorage.setItem('mom_app_test_mode', isTestMode);
-  }, [isTestMode]);
-
-  useEffect(() => {
-    localStorage.setItem('mom_app_test_mode', isTestMode);
-  }, [isTestMode]);
 
   const [formData, setFormData] = useState({
     product_id: '',
@@ -166,11 +156,19 @@ export default function InventoryEntry({ session, onBundleCreated }) {
       const unitSalesPrice = parseFloat(selectedProduct.unit_product_value) || 0;
       const predictedSalesValue = isBoardFeetProduct ? (finalBoardFeet * unitSalesPrice) : (qtyValue * unitSalesPrice);
 
+      const selectedSpecies = allSpecies.find(s => s.id == formData.species_id);
+
       const { data, error } = await supabase
         .from('inventory')
         .insert([{
           product_id: formData.product_id,
           species_id: formData.species_id || null,
+          product_name: selectedProduct.product_name,
+          species_name: selectedSpecies?.species_name || null,
+          unit_type: selectedProduct.unit_type,
+          thickness: selectedProduct.thickness,
+          unit_inv_value: unitCost,
+          unit_product_value: unitSalesPrice,
           line: formData.line,
           boardfeet: finalBoardFeet,
           quantity: qtyValue,
@@ -188,32 +186,29 @@ export default function InventoryEntry({ session, onBundleCreated }) {
 
       if (error) throw error
 
-      const notePrefix = isTestMode ? '[TEST] ' : '';
+      const notePrefix = isTest ? '[TEST] ' : '';
 
       // Update the database record with the test note if needed
-      if (isTestMode && formData.note) {
-        // Just keeping it simple for now, but you can add logic to update
+      if (isTest && formData.note) {
+        // Optional: you can add logic to update
       }
 
-      // Grab the species name before we clear the form
-      const selectedSpecies = allSpecies.find(s => s.id == data[0].species_id);
-      
       const bundleData = { 
         ...data[0], 
-        product_name: selectedProduct?.product_name || '',
-        species_name: selectedSpecies?.species_name || '',
-        isTest: isTestMode 
+        isTest: isTest 
       };
 
       // Inline printing
       if (formData.copies > 0) {
         try {
-          const qrText = `Tag: ${data[0].tag}\n${bundleData.product_name}\nDim: ${data[0].length || '-'}x${data[0].width || '-'}x${data[0].rows || '-'}`;
+          const qtyLabel = (bundleData.unit_type === 'Bd Ft' || (data[0].boardfeet && parseFloat(data[0].boardfeet) > 0)) ? 'BdFt' : 'Qty';
+          const qtyValue = (qtyLabel === 'BdFt' ? data[0].boardfeet : data[0].quantity) || 0;
+          const qrText = `${data[0].tag} ${bundleData.product_name} ${qtyLabel} ${qtyValue}`.replace(/\s+/g, ' ').trim();
           const qrCodeUrl = await QRCode.toDataURL(qrText);
           const blob = await pdf(<InventoryTagPDF data={bundleData} qrCodeUrl={qrCodeUrl} copies={parseInt(formData.copies)} />).toBlob();
           const url = URL.createObjectURL(blob);
 
-          if (isTestMode) {
+          if (isTest) {
             window.open(url, '_blank');
           } else {
             const iframe = document.createElement('iframe');
@@ -256,17 +251,14 @@ export default function InventoryEntry({ session, onBundleCreated }) {
     <div className="form-widget">
       <h2>Add Inventory Bundle</h2>
 
-      {session?.user?.email && (
-        <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fff3cd', border: '1px solid #ffeeba', borderRadius: '4px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontWeight: 'bold', color: '#856404' }}>
-            <input 
-              type="checkbox" 
-              checked={isTestMode} 
-              onChange={(e) => setIsTestMode(e.target.checked)} 
-              style={{ marginRight: '10px', transform: 'scale(1.3)' }} 
-            />
-            TEST MODE (Do not print tags for {session.user.email})
-          </label>
+      {isTest && (
+        <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#e2e3e5', border: '1px solid #d6d8db', borderRadius: '4px' }}>
+          <span style={{ fontWeight: 'bold', color: '#383d41' }}>
+            🧪 TEST ROLE ACTIVE:
+          </span>
+          <span style={{ marginLeft: '10px', color: '#383d41' }}>
+            Tags will open in a new tab instead of printing.
+          </span>
         </div>
       )}
 

@@ -58,10 +58,10 @@ export default function ProductionReport() {
 
     // 2. Date Range Filter
     const now = new Date();
-    const thisWeekStart = startOfWeek(now, { weekStartsOn: 0 }); // Sunday start
-    const thisWeekEnd = endOfWeek(now, { weekStartsOn: 0 });
-    const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
-    const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+    const thisWeekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
+    const thisWeekEnd = endOfWeek(now, { weekStartsOn: 1 });
+    const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+    const lastWeekEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
 
     data = data.filter(item => {
       if (!item.produced) return false;
@@ -185,13 +185,13 @@ export default function ProductionReport() {
   const getDateRangeLabel = () => {
     const now = new Date();
     if (dateRange === 'This Week') {
-      const start = startOfWeek(now, { weekStartsOn: 0 });
-      const end = endOfWeek(now, { weekStartsOn: 0 });
+      const start = startOfWeek(now, { weekStartsOn: 1 });
+      const end = endOfWeek(now, { weekStartsOn: 1 });
       return `For the Week of: ${format(start, 'MM/dd/yyyy')} - ${format(end, 'MM/dd/yyyy')}`;
     }
     if (dateRange === 'Last Week') {
-      const start = startOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
-      const end = endOfWeek(subWeeks(now, 1), { weekStartsOn: 0 });
+      const start = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      const end = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
       return `For the Week of: ${format(start, 'MM/dd/yyyy')} - ${format(end, 'MM/dd/yyyy')}`;
     }
     return '';

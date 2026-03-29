@@ -8,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 -- Schedule the daily report
 SELECT cron.schedule(
   'daily-production-report',       -- job name
-  '0 1 * * 0,1,2,3,4',             -- 01:00 UTC, Sun-Thu (= 20:00 ET Sun-Thu)
+  '0 1 * * 1,2,3,4,5',             -- 01:00 UTC Mon-Fri (= 20:00 ET Sun-Thu)
   $$
   SELECT net.http_post(
     url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url') || '/functions/v1/generate-production-report',

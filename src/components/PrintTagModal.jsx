@@ -3,7 +3,6 @@ import { pdf } from '@react-pdf/renderer';
 import { InventoryTagPDF } from './InventoryTag';
 import QRCode from 'qrcode';
 import { saveAs } from 'file-saver';
-
 export default function PrintTagModal({ 
   data, 
   mode = 'report', // 'entry' or 'report'
@@ -16,7 +15,9 @@ export default function PrintTagModal({
     setLoading(true);
     try {
       // 1. Generate QR Code Data URI
-      const qrText = `Tag: ${data.tag}\n${data.product_name}\nDim: ${data.length || '-'}x${data.width || '-'}x${data.rows || '-'}`;
+      const qtyLabel = (data.unit_type === 'Bd Ft' || (data.boardfeet && parseFloat(data.boardfeet) > 0)) ? 'BdFt' : 'Qty';
+      const qtyValue = (qtyLabel === 'BdFt' ? data.boardfeet : data.quantity) || 0;
+      const qrText = `${data.tag} ${data.product_name} ${qtyLabel} ${qtyValue}`.replace(/\s+/g, ' ').trim();
       const qrCodeUrl = await QRCode.toDataURL(qrText);
 
       // 2. Generate PDF Blob

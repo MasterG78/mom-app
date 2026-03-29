@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // ── Helpers ────────────────────────────────────────────────────────────
 function startOfWeek(d: Date): Date {
   const day = d.getDay(); // 0 = Sunday
-  const diff = d.getDate() - day;
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1); // Monday start
   return new Date(d.getFullYear(), d.getMonth(), diff);
 }
 
@@ -230,7 +230,7 @@ function buildHtmlReport(rows: ProcessedRow[], weekLabel: string, dateStr: strin
     </table>
     <div class="footer">
       Mountain Oak Mill &bull; Automated Production Report<br/>
-      This report is generated automatically each weekday at 8:00 PM ET.
+      This report is generated automatically at 8:00 PM ET (Sun-Thu).
     </div>
   </div>
 </body>
