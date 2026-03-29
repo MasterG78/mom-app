@@ -63,8 +63,8 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
       id,
       produced,
       tag,
-      product:products(product_name),
-      species:species(species_name),
+      product_name,
+      species_name,
       boardfeet,
       quantity,
       inventory_value,
@@ -109,8 +109,8 @@ export const exportInventoryByDate = async ({ filterType, customRange }) => {
   // 4. Flatten the data and Convert to CSV and Download
   const flattenedData = inventoryData.map(item => ({
     ...item,
-    product_name: item.product ? item.product.product_name : '',
-    species_name: item.species ? item.species.species_name : '',
+    product_name: item.product_name || '',
+    species_name: item.species_name || '',
     tagger_name: item.tagger ? taggerMap[item.tagger] : ''
   }));
 

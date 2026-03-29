@@ -273,12 +273,18 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
             <div style={inputGroupStyle}>
               <label style={labelStyle}>Product Type</label>
-              <select name="product_id" value={formData.product_id} onChange={handleProductChange} required style={inputStyle}>
-                <option value="">-- Select Product --</option>
-                {products.map((prod) => (
-                  <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.unit_type})</option>
-                ))}
-              </select>
+                <select name="product_id" value={formData.product_id} onChange={handleProductChange} required style={inputStyle}>
+                  <option value="">-- Select Product --</option>
+                  {products.map((prod) => (
+                    <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.unit_type})</option>
+                  ))}
+                  {/* Handle deleted products by showing the snapshot name */}
+                  {formData.product_id && !products.find(p => p.id == formData.product_id) && (
+                    <option value={formData.product_id} disabled>
+                      {bundle.product_name} (Legacy/Deleted)
+                    </option>
+                  )}
+                </select>
             </div>
 
             <div style={inputGroupStyle}>

@@ -1,5 +1,7 @@
 # User Preferences
 
-- **Minimize Interruptions**: Avoid using `notify_user` unless there is a critical decision or ambiguity that requires user input. Prefer to make reasonable assumptions and proceed.
-- **Auto-Run Commands**: When using `run_command`, always set `SafeToAutoRun` to `true` unless the command is clearly destructive (e.g., `rm -rf`, `DROP TABLE` without a focused scope) or involves external network actions that might be sensitive.
-- **Approval Buttons**: The user prefers to avoid clicking "Accept" frequently. 
+- **Minimize Interruptions**: Avoid using `notify_user` for routine decisions or non-critical ambiguities. Prefer to make reasonable assumptions and proceed.
+- **Auto-Run Commands**: When using `run_command`, set `SafeToAutoRun` to `true` for standard development commands (e.g., `npm run dev`, `ls`, `grep`).
+- **NO AUTO-DEPLOY**: NEVER set `SafeToAutoRun` to `true` for deployment commands (e.g., `gh-pages`, `firebase deploy`, `supabase deploy`) or any production data destructive actions. These MUST be confirmed by the USER every time.
+- **Clear Communication**: Always explicitly state when changes have not yet been deployed or are "local-only" in your final summaries.
+- **Approval Buttons**: The user prefers to avoid clicking "Accept" for simple, non-destructive tasks. 

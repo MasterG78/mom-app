@@ -218,9 +218,9 @@ export default function InventoryManager({ isTest }) {
         <div style={cardStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', paddingBottom: '10px', borderBottom: '1px solid #eee' }}>
             <div>
-              <h3 style={{ margin: 0 }}>Tag #{bundle.tag}</h3>
+              <h3 style={{ margin: 0 }}>Tag #{bundle.tag} - {bundle.product_name}</h3>
               <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                Produced: {new Date(bundle.produced).toLocaleDateString()} | Line: {bundle.line} | Tagger: {bundle.tagger}
+                Species: {bundle.species_name || 'None'} | Produced: {new Date(bundle.produced).toLocaleDateString()} | Line: {bundle.line}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -236,6 +236,12 @@ export default function InventoryManager({ isTest }) {
                 <label style={labelStyle}>Product Description</label>
                 <select name="product_id" value={formData.product_id} onChange={handleChange} style={inputStyle}>
                   {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
+                  {/* Handle deleted products by showing the snapshot name */}
+                  {formData.product_id && !products.find(p => p.id == formData.product_id) && (
+                    <option value={formData.product_id} disabled>
+                      {bundle.product_name} (Legacy/Deleted)
+                    </option>
+                  )}
                 </select>
               </div>
               <div>
