@@ -22,6 +22,7 @@ export default function InventoryManager({ isTest, session }) {
     sales_value: '',
     customer_name: '',
     note: '',
+    tagger: '',
     status_id: ''
   });
 
@@ -67,6 +68,7 @@ export default function InventoryManager({ isTest, session }) {
           sales_value: data.sales_value ? parseFloat(data.sales_value).toFixed(2) : '',
           customer_name: data.customer_name || '',
           note: data.note || '',
+          tagger: data.tagger || data.tagger_name || '',
           status_id: data.status_id || ''
         });
       }
@@ -269,7 +271,7 @@ export default function InventoryManager({ isTest, session }) {
             <div>
               <h3 style={{ margin: 0 }}>Tag #{bundle.tag} - {bundle.product_name}</h3>
               <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                Species: {bundle.species_name || 'None'} | Produced: {new Date(bundle.produced).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} | Line: {bundle.line} | Tagger: {bundle.tagger || '-'}
+                Species: {bundle.species_name || 'None'} | Produced: {new Date(bundle.produced).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} | Line: {bundle.line} | Tagger: {bundle.tagger || bundle.tagger_name || '-'}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -349,7 +351,11 @@ export default function InventoryManager({ isTest, session }) {
             </div>
 
             <div style={fieldRowStyle}>
-              <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Tagger</label>
+                <input type="text" name="tagger" value={formData.tagger} onChange={handleChange} placeholder="e.g. JD" style={inputStyle} />
+              </div>
+              <div style={{ flex: 2 }}>
                 <label style={labelStyle}>Customer Allocation</label>
                 <input type="text" name="customer_name" value={formData.customer_name} onChange={handleChange} placeholder="e.g. Cabin Masters Inc." style={inputStyle} />
               </div>

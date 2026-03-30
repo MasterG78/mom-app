@@ -70,7 +70,7 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
     rows: bundle.rows || '',
     note: bundle.note || '',
     customer_name: bundle.customer_name || '',
-    tagger: bundle.tagger || '',
+    tagger: bundle.tagger || bundle.tagger_name || '',
     copies: 0
   })
 
@@ -310,7 +310,7 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
             </div>
 
             <div style={inputGroupStyle}>
-              <label style={labelStyle}>Tagger (Initials)</label>
+              <label style={labelStyle}>Tagger</label>
               <input name="tagger" type="text" value={formData.tagger} onChange={handleChange} required style={inputStyle} />
             </div>
 

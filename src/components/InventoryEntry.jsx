@@ -52,7 +52,8 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
     note: '',
     customer_name: '',
     tagger: '',
-    copies: 2
+    copies: 2,
+    gap: 3
   })
 
   // 1. Initial Data Fetch
@@ -122,12 +123,12 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
 
   // 3. Calculation Logic
   useEffect(() => {
-    const { length, width, rows, boardfeet } = formData;
+    const { length, width, rows, boardfeet, gap } = formData;
     if (selectedProduct && selectedProduct.unit_type === 'Bd Ft') {
-      const L = parseFloat(length), W = parseFloat(width), R = parseFloat(rows), T = parseFloat(selectedProduct.thickness);
-      if (!isNaN(L) && !isNaN(W) && !isNaN(R) && L > 0 && W > 0 && R > 0 && T > 0) {
-        const result = (L * W * R * T) / 12;
-        const roundedResult = Math.round(result * 100) / 100;
+      const L = parseFloat(length), W = parseFloat(width), R = parseFloat(rows), G = parseFloat(gap), T = parseFloat(selectedProduct.thickness);
+      if (!isNaN(L) && !isNaN(W) && !isNaN(R) && !isNaN(G) && L > 0 && W > 0 && R > 0 && T > 0) {
+        const result = (L * (W - G) * R * T) / 12;
+        const roundedResult = Math.max(0, Math.round(result * 100) / 100); // Ensure non-negative
         setCalculatedBoardFeet(roundedResult.toString());
         if (!boardfeet || boardfeet === '' || parseFloat(boardfeet) === parseFloat(calculatedBoardFeet)) {
           setFormData(prev => ({ ...prev, boardfeet: roundedResult.toString() }));
@@ -136,7 +137,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
         setCalculatedBoardFeet('');
       }
     }
-  }, [formData.length, formData.width, formData.rows, selectedProduct]);
+  }, [formData.length, formData.width, formData.rows, formData.gap, selectedProduct]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
@@ -232,7 +233,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
       }
 
       // Now clear the form
-      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '', tagger: formData.tagger, copies: formData.copies })
+      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', gap: 3, note: '', customer_name: '', tagger: formData.tagger, copies: formData.copies })
       setSelectedProduct(null);
       setIsIssue(false);
       
@@ -267,11 +268,11 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
 
       <form onSubmit={handleSubmit}>
 
-        {/* Row 1: Product Type | Species */}
+        {/* Row 1: Product | Species */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           <div style={inputGroupStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Product Type</label>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Product</label>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <label style={{ fontSize: '12px', cursor: 'pointer', color: '#666' }}>
                   <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} style={{ marginRight: '5px' }} />
@@ -330,8 +331,33 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
           </div>
         </div>
 
-        {/* Row 2: Production Line | Tagger | Copies */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+        {/* Row 2: Production Info (Adaptive) */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: selectedProduct?.unit_type === 'Each' ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', 
+          gap: '20px',
+          marginBottom: '10px'
+        }}>
+          {selectedProduct?.unit_type === 'Each' && (
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Qty</label>
+              <input
+                name="quantity"
+                type="text"
+                value={formData.quantity}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '' || /^\d+$/.test(val)) {
+                    handleChange(e);
+                  }
+                }}
+                required
+                style={inputStyle}
+                placeholder="0"
+              />
+            </div>
+          )}
+
           <div style={inputGroupStyle}>
             <label style={labelStyle}>Production Line</label>
             <select name="line" value={formData.line} onChange={handleChange} required style={inputStyle}>
@@ -342,7 +368,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
           </div>
 
           <div style={inputGroupStyle}>
-            <label style={labelStyle}>Tagger (Initials)<span style={{ color: 'red' }}>*</span></label>
+            <label style={labelStyle}>Tagger<span style={{ color: 'red' }}>*</span></label>
             <input
               name="tagger"
               type="text"
@@ -382,18 +408,27 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
           </div>
         )}
 
-        {selectedProduct && (
-          <div style={formGridStyle}>
-            {isBoardFeetProduct ? (
-              <>
-                <div style={inputGroupStyle}><label style={labelStyle}>Length (Ft)</label><input name="length" type="number" step="0.1" value={formData.length} onChange={handleChange} style={inputStyle} /></div>
-                <div style={inputGroupStyle}><label style={labelStyle}>Width (In)</label><input name="width" type="number" step="0.1" value={formData.width} onChange={handleChange} style={inputStyle} /></div>
-                <div style={inputGroupStyle}><label style={labelStyle}>Rows</label><input name="rows" type="number" value={formData.rows} onChange={handleChange} style={inputStyle} /></div>
-                <div style={inputGroupStyle}><label style={labelStyle}>Board Feet</label><input name="boardfeet" type="number" step="0.01" value={formData.boardfeet} onChange={handleChange} style={{ ...inputStyle, backgroundColor: bfInputBackgroundColor }} /></div>
-              </>
-            ) : (
-              <div style={inputGroupStyle}><label style={labelStyle}>Quantity</label><input name="quantity" type="number" value={formData.quantity} onChange={handleChange} required style={inputStyle} /></div>
-            )}
+        {selectedProduct && isBoardFeetProduct && (
+          <div style={{ 
+            ...formGridStyle, 
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            padding: '10px'
+          }}>
+            <div style={inputGroupStyle}><label style={labelStyle}>Length (Ft)</label><input name="length" type="number" step="0.1" value={formData.length} onChange={handleChange} style={inputStyle} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Width (In)</label><input name="width" type="number" step="0.1" value={formData.width} onChange={handleChange} style={inputStyle} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Rows</label><input name="rows" type="number" value={formData.rows} onChange={handleChange} style={inputStyle} /></div>
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Gap (space between boards)</label>
+              <select name="gap" value={formData.gap} onChange={handleChange} style={inputStyle}>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Board Feet</label><input name="boardfeet" type="number" step="0.01" value={formData.boardfeet} onChange={handleChange} style={{ ...inputStyle, backgroundColor: bfInputBackgroundColor }} /></div>
           </div>
         )}
 

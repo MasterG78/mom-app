@@ -11,7 +11,7 @@ SELECT
     i.quantity,
     i.produced,
     p.product_name,
-    i.tagger AS tagger_name -- Map initials directly to tagger_name
+    i.tagger -- Map initials directly to tagger
 FROM
     inventory i
 LEFT JOIN
@@ -32,7 +32,7 @@ SELECT
     sl.status_name AS current_status,
     i.inventory_value AS total_value,
     i.sales_value,
-    i.tagger AS tagger_name -- Add tagger initials to the report view
+    i.tagger -- Add tagger initials to the report view
 FROM
     inventory i
 LEFT JOIN
