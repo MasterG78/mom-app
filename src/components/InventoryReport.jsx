@@ -137,6 +137,24 @@ export default function InventoryReport() {
     const now = new Date();
     const getStartOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
+    // Pre-calculate target date for 'Previous Day' if needed
+    let targetDate = null;
+    if (dateRange === 'Previous Day') {
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
+
+      const pastDates = [...new Set(reportData
+        .map(item => item.produced?.split('T')[0])
+        .filter(d => d && d < todayStr))]
+        .sort((a, b) => b.localeCompare(a));
+      
+      if (pastDates.length > 0) {
+        targetDate = pastDates[0];
+      }
+    }
+
     data = data.filter(item => {
       if (!item.produced) return false;
 
@@ -145,6 +163,9 @@ export default function InventoryReport() {
       const [year, month, dayNum] = datePart.split('-').map(Number);
       const prodDate = new Date(year, month - 1, dayNum);
 
+      if (dateRange === 'Previous Day') {
+        return datePart === targetDate;
+      }
       if (dateRange === 'This Week') {
         const sunday = new Date(now);
         sunday.setDate(now.getDate() - now.getDay());
@@ -325,6 +346,7 @@ export default function InventoryReport() {
           <div className="filter-group">
             <label className="filter-label">Timeframe</label>
             <select value={dateRange} onChange={(e) => setDateRange(e.target.value)} style={{ padding: '5px' }}>
+              <option value="Previous Day">Previous Day</option>
               <option value="This Week">This Week</option>
               <option value="Last Week">Last Week</option>
               <option value="30">Last 30 Days</option>

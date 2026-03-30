@@ -45,6 +45,7 @@ export default function InventoryList() {
         <thead>
           <tr style={{ borderBottom: '2px solid #ccc' }}>
             <th style={{ padding: '8px', textAlign: 'left' }}>Tag #</th>
+            <th style={{ padding: '8px', textAlign: 'left' }}>Produced</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Line</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Qty</th>
@@ -64,7 +65,17 @@ export default function InventoryList() {
               }}
             >
               <td style={{ padding: '8px' }}>{bundle.tag}</td>
-              <td style={{ padding: '8px', fontWeight: 'bold' }}>{bundle.line || '-'}</td> {/* NEW CELL */}
+              <td style={{ padding: '8px', fontSize: '13px' }}>
+                {new Date(bundle.produced).toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </td>
+              <td style={{ padding: '8px', fontWeight: 'bold' }}>{bundle.line || '-'}</td>
               <td style={{ padding: '8px' }}>{bundle.product_name}</td>
               <td style={{ padding: '8px' }}>{bundle.quantity || '-'}</td>
               <td style={{ padding: '8px' }}>{bundle.boardfeet || '-'}</td>

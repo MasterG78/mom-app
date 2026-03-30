@@ -5,6 +5,20 @@
 CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
+-- NOTE: This cron job requires two secrets to be present in the Supabase Vault:
+-- 1. 'supabase_url' (e.g., 'https://xyz.supabase.co')
+-- 2. 'service_role_key' (your project's service_role key)
+-- 
+-- If the email stops working, ensure these secrets are correctly set in the 
+-- vault.decrypted_secrets table. Run the FOLLOWING SQL manually if missing:
+/*
+INSERT INTO vault.secrets (name, secret) 
+VALUES 
+  ('supabase_url', 'YOUR_PROJECT_URL'),
+  ('service_role_key', 'YOUR_SERVICE_ROLE_KEY')
+ON CONFLICT (name) DO UPDATE SET secret = EXCLUDED.secret;
+*/
+
 -- Schedule the daily report
 SELECT cron.schedule(
   'daily-production-report',       -- job name

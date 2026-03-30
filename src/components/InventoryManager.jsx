@@ -4,13 +4,14 @@ import { pdf } from '@react-pdf/renderer';
 import { InventoryTagPDF } from './InventoryTag';
 import QRCode from 'qrcode';
 
-export default function InventoryManager({ isTest }) {
+export default function InventoryManager({ isTest, session }) {
   const [searchTag, setSearchTag] = useState('');
   const [bundle, setBundle] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [products, setProducts] = useState([]);
   const [species, setSpecies] = useState([]);
+  const [statuses, setStatuses] = useState([]);
   
   const [formData, setFormData] = useState({
     product_id: '',
@@ -20,7 +21,8 @@ export default function InventoryManager({ isTest }) {
     inventory_value: '',
     sales_value: '',
     customer_name: '',
-    note: ''
+    note: '',
+    status_id: ''
   });
 
   // 1. Load Products & Species for dropdowns
@@ -28,8 +30,10 @@ export default function InventoryManager({ isTest }) {
     async function loadResources() {
       const { data: p } = await supabase.from('products').select('*').order('product_name');
       const { data: s } = await supabase.from('species').select('*').order('species_name');
+      const { data: st } = await supabase.from('statuses').select('*').order('status_name');
       setProducts(p || []);
       setSpecies(s || []);
+      setStatuses(st || []);
     }
     loadResources();
   }, []);
@@ -44,7 +48,7 @@ export default function InventoryManager({ isTest }) {
     
     try {
       const { data, error } = await supabase
-        .from('inventory')
+        .from('inventory_view')
         .select('*')
         .eq('tag', searchTag)
         .single();
@@ -62,7 +66,8 @@ export default function InventoryManager({ isTest }) {
           inventory_value: data.inventory_value ? parseFloat(data.inventory_value).toFixed(2) : '',
           sales_value: data.sales_value ? parseFloat(data.sales_value).toFixed(2) : '',
           customer_name: data.customer_name || '',
-          note: data.note || ''
+          note: data.note || '',
+          status_id: data.status_id || ''
         });
       }
     } catch (err) {
@@ -120,8 +125,10 @@ export default function InventoryManager({ isTest }) {
         updatedSnapshot.species_name = newSpec?.species_name || null;
       }
 
+      // Create update payload excluding status_id since it's not in the inventory table
+      const { status_id, ...baseFormData } = formData;
       const updatePayload = {
-        ...formData,
+        ...baseFormData,
         ...updatedSnapshot,
         boardfeet: parseFloat(formData.boardfeet) || 0,
         quantity: parseInt(formData.quantity) || 0,
@@ -140,8 +147,40 @@ export default function InventoryManager({ isTest }) {
 
       if (error) throw error;
       
-      setBundle(data);
-      alert('Bundle updated successfully.');
+      // If status changed, record it in status_changes
+      if (formData.status_id && Number(formData.status_id) !== Number(bundle.status_id)) {
+        const { error: statusError } = await supabase
+          .from('status_changes')
+          .insert([{
+            inventory_id: bundle.id,
+            status_id: formData.status_id,
+            updated_by: session?.user?.id,
+            notes: formData.note || 'Status adjusted via Tag Lookup tool'
+          }]);
+        if (statusError) {
+          console.error("Error recording status change:", statusError);
+          alert("Status update failed: " + statusError.message);
+          return; // Stop here if status update failed
+        }
+      }
+
+      // Small delay before re-fetching to ensure the database view (with its subquery) reflects the insert
+      await new Promise(res => setTimeout(res, 500));
+
+      // Re-fetch from view to get updated current_status badge and status_id
+      const { data: refreshedBundle } = await supabase
+        .from('inventory_view')
+        .select('*')
+        .eq('id', bundle.id)
+        .single();
+
+      if (refreshedBundle) {
+        setBundle(refreshedBundle);
+        setFormData(prev => ({ 
+          ...prev, 
+          status_id: refreshedBundle.status_id || '' 
+        }));
+      }
       
       if (print) {
         handlePrint(data);
@@ -187,6 +226,16 @@ export default function InventoryManager({ isTest }) {
   const inputStyle = { padding: '8px', borderRadius: '4px', border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' };
   const labelStyle = { display: 'block', fontWeight: 'bold', marginBottom: '5px', fontSize: '13px' };
   const fieldRowStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginBottom: '15px' };
+  
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'in stock': return '#28a745'; // Green
+      case 'sold': return '#6c757d';     // Gray
+      case 'void': return '#dc3545';     // Red
+      case 'issued': return '#007bff';   // Blue
+      default: return '#ffc107';        // Amber/Warning
+    }
+  };
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -220,19 +269,27 @@ export default function InventoryManager({ isTest }) {
             <div>
               <h3 style={{ margin: 0 }}>Tag #{bundle.tag} - {bundle.product_name}</h3>
               <p style={{ margin: '5px 0', color: '#666', fontSize: '14px' }}>
-                Species: {bundle.species_name || 'None'} | Produced: {new Date(bundle.produced).toLocaleDateString()} | Line: {bundle.line}
+                Species: {bundle.species_name || 'None'} | Produced: {new Date(bundle.produced).toLocaleString(undefined, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })} | Line: {bundle.line} | Tagger: {bundle.tagger || '-'}
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <span style={{ backgroundColor: '#28a745', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold' }}>
-                IN STOCK
+              <span style={{ 
+                backgroundColor: getStatusColor(bundle.current_status), 
+                color: 'white', 
+                padding: '4px 12px', 
+                borderRadius: '20px', 
+                fontSize: '12px', 
+                fontWeight: 'bold',
+                textTransform: 'uppercase'
+              }}>
+                {bundle.current_status || 'UNKNOWN'}
               </span>
             </div>
           </div>
 
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
             <div style={fieldRowStyle}>
-              <div>
+              <div style={{ flex: '1.2' }}>
                 <label style={labelStyle}>Product Description</label>
                 <select name="product_id" value={formData.product_id} onChange={handleChange} style={inputStyle}>
                   {products.map(p => <option key={p.id} value={p.id}>{p.product_name}</option>)}
@@ -244,12 +301,20 @@ export default function InventoryManager({ isTest }) {
                   )}
                 </select>
               </div>
-              <div>
-                <label style={labelStyle}>Species</label>
-                <select name="species_id" value={formData.species_id} onChange={handleChange} style={inputStyle}>
-                  <option value="">-- No Species --</option>
-                  {species.map(s => <option key={s.id} value={s.id}>{s.species_name}</option>)}
-                </select>
+              <div style={{ display: 'flex', gap: '15px', flex: '2' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Species</label>
+                  <select name="species_id" value={formData.species_id} onChange={handleChange} style={inputStyle}>
+                    <option value="">-- No Species --</option>
+                    {species.map(s => <option key={s.id} value={s.id}>{s.species_name}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={labelStyle}>Manual Status Override</label>
+                  <select name="status_id" value={formData.status_id} onChange={handleChange} style={{ ...inputStyle, border: '1px solid #ffc107', backgroundColor: '#fffbe6' }}>
+                    {statuses.map(st => <option key={st.id} value={st.id}>{st.status_name}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 

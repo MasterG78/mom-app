@@ -243,7 +243,7 @@ export default function App() {
           )}
 
           {canManage && view === 'manager' && (
-            <InventoryManager isTest={isTest} />
+            <InventoryManager isTest={isTest} session={session} />
           )}
 
           {canManage && view === 'products' && (

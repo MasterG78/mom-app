@@ -34,6 +34,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
   const [filteredSpecies, setFilteredSpecies] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [showAll, setShowAll] = useState(false)
+  const [isIssue, setIsIssue] = useState(false)
   const [calculatedBoardFeet, setCalculatedBoardFeet] = useState('');
 
   // Removed local isTestMode state - now using isTest prop from App.jsx
@@ -180,7 +181,8 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
           produced: new Date(),
           sales_value: predictedSalesValue, // Predicted Price
           customer_name: formData.customer_name || null, // Special Order Customer
-          tagger: formData.tagger || null
+          tagger: formData.tagger || null,
+          initial_status: isIssue ? 'Issued' : 'In Stock'
         }])
         .select()
 
@@ -232,6 +234,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
       // Now clear the form
       setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', note: '', customer_name: '', tagger: formData.tagger, copies: formData.copies })
       setSelectedProduct(null);
+      setIsIssue(false);
       
       if (onBundleCreated) onBundleCreated();
 
@@ -269,10 +272,24 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
           <div style={inputGroupStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
               <label style={{ ...labelStyle, marginBottom: 0 }}>Product Type</label>
-              <label style={{ fontSize: '12px', cursor: 'pointer', color: '#666' }}>
-                <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} style={{ marginRight: '5px' }} />
-                Show All
-              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <label style={{ fontSize: '12px', cursor: 'pointer', color: '#666' }}>
+                  <input type="checkbox" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} style={{ marginRight: '5px' }} />
+                  Show All
+                </label>
+                <label style={{ fontSize: '12px', cursor: 'pointer', color: '#666' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isIssue} 
+                    onChange={(e) => {
+                      setIsIssue(e.target.checked);
+                      if (e.target.checked) setFormData(prev => ({ ...prev, copies: 0 }));
+                    }} 
+                    style={{ marginRight: '5px' }} 
+                  />
+                  Issue
+                </label>
+              </div>
             </div>
             <select name="product_id" value={formData.product_id} onChange={handleProductChange} required style={inputStyle}>
               <option value="">-- Select Product --</option>
