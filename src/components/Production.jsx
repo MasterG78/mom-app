@@ -124,7 +124,7 @@ export default function ProductionReport() {
     sortedLines.forEach(line => {
       result.push({ isLineHeader: true, label: `Line ${line}` });
       const lineData = lineSummaries[line];
-      const sortedDays = Object.keys(lineData.daily).sort((a, b) => new Date(b) - new Date(a));
+      const sortedDays = Object.keys(lineData.daily).sort((a, b) => new Date(a) - new Date(b));
 
       sortedDays.forEach(day => {
         const dayData = lineData.daily[day];

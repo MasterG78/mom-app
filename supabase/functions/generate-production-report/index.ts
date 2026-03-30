@@ -120,7 +120,7 @@ function processReport(reportData: ReportRow[], goals: Goal[]): { rows: Processe
     rows.push({ isLineHeader: true, label: `Line ${line}`, value: 0, goal: 0, diff: 0 });
     const lineData = lineSummaries[line];
     const sortedDays = Object.keys(lineData.daily).sort(
-      (a, b) => new Date(b).getTime() - new Date(a).getTime()
+      (a, b) => new Date(a).getTime() - new Date(b).getTime()
     );
 
     sortedDays.forEach((day) => {
@@ -358,9 +358,9 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const emailTo = Deno.env.get("REPORT_EMAIL_TO") || "greg@mountainoakmill.com";
+    const emailTo = Deno.env.get("REPORT_EMAIL_TO") || "DailyReports@mountainoakmill.com";
     const emailFrom = Deno.env.get("REPORT_EMAIL_FROM") || "Mountain Oak Mill Reports <onboarding@resend.dev>";
-    const replyTo = Deno.env.get("REPORT_REPLY_TO") || "greg@mountainoakmill.com";
+    const replyTo = Deno.env.get("REPORT_REPLY_TO") || "DailyReports@mountainoakmill.com";
 
     if (!resendApiKey) {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY not configured" }), {
