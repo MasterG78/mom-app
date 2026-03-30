@@ -6,7 +6,7 @@ CREATE OR REPLACE VIEW "inventory_report_view" AS
 SELECT
     i.id,
     i.tag,
-    i.invoice_number,
+    i.invoice_number AS invoice_id,
     i.line,
     i.produced,
     COALESCE(i.product_name, p.product_name) AS product_name,
