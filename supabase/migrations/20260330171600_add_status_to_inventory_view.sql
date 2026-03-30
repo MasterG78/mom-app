@@ -20,7 +20,7 @@ SELECT
     i.sales_value,
     i.customer_name,
     i.note,
-    i.tagger,
+    i.tagger AS tagger_name,
     i.product_id,
     i.species_id,
     sl.status_name AS current_status,

@@ -23,7 +23,7 @@ CREATE OR REPLACE VIEW "inventory_report_view" AS
 SELECT
     i.id,
     i.tag,
-    (q.raw_data->>'DocNumber') AS invoice_id,
+    i.invoice_number AS invoice_id,
     i.line,
     i.produced,
     p.product_name,
@@ -37,8 +37,6 @@ FROM
     inventory i
 LEFT JOIN
     products p ON i.product_id = p.id
-LEFT JOIN
-    qbo_invoices q ON i.invoice_id = q.id
 LEFT JOIN
     (
         SELECT DISTINCT ON (inventory_id) inventory_id, status_id
