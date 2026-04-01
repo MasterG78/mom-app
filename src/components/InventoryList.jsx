@@ -50,7 +50,7 @@ export default function InventoryList() {
             <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>Qty</th>
             <th style={{ padding: '8px', textAlign: 'left' }}>BdFt</th>
-            <th style={{ padding: '8px', textAlign: 'left' }}>Tagger (Name)</th>
+            <th style={{ padding: '8px', textAlign: 'left' }}>Tagger</th>
           </tr>
         </thead>
         <tbody>
@@ -79,7 +79,7 @@ export default function InventoryList() {
               <td style={{ padding: '8px' }}>{bundle.product_name}</td>
               <td style={{ padding: '8px' }}>{bundle.quantity || '-'}</td>
               <td style={{ padding: '8px' }}>{bundle.boardfeet || '-'}</td>
-              <td style={{ padding: '8px' }}>{bundle.tagger_name}</td>
+              <td style={{ padding: '8px' }}>{bundle.tagger}</td>
             </tr>
           ))}
         </tbody>
