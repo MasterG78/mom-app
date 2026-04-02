@@ -208,7 +208,7 @@ function buildHtmlReport(rows: ProcessedRow[], weekLabel: string, dateStr: strin
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌲 Mountain Oak Mill</h1>
+      <h1>🌳 Mountain Oak Mill</h1>
       <p>Daily Production Report</p>
     </div>
     <div class="subheader">
