@@ -183,10 +183,6 @@ export default function ProductManager() {
           </div>
         )}
         <div>
-          <label style={labelStyle}>Product Value ($)</label>
-          <input type="number" step="0.01" style={inputStyle} value={formData.unit_product_value} onChange={e => setFormData({ ...formData, unit_product_value: e.target.value })} />
-        </div>
-        <div>
           <label style={labelStyle}>Inv Value ($)</label>
           <input type="number" step="0.01" style={inputStyle} value={formData.unit_inv_value} onChange={e => setFormData({ ...formData, unit_inv_value: e.target.value })} />
         </div>
@@ -232,7 +228,6 @@ export default function ProductManager() {
               <th style={thStyle}>Unit BdFt</th>
               <th style={thStyle}>Def. Len</th>
               <th style={thStyle}>Def. Qty</th>
-              <th style={thStyle}>Prod Value</th>
               <th style={thStyle}>Inv Value</th>
               <th style={thStyle}>Account</th>
               <th style={thStyle}>Acc Name</th>
@@ -251,7 +246,6 @@ export default function ProductManager() {
                 <td style={tdStyle}>{p.unit_boardfeet || '-'}</td>
                 <td style={tdStyle}>{p.default_length || '-'}</td>
                 <td style={tdStyle}>{p.default_quantity || '-'}</td>
-                <td style={tdStyle}>${p.unit_product_value?.toFixed(2)}</td>
                 <td style={tdStyle}>${p.unit_inv_value?.toFixed(2)}</td>
                 <td style={tdStyle}>{p.account || '-'}</td>
                 <td style={tdStyle}>{p.account_product || '-'}</td>
