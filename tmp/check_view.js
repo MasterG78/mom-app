@@ -5,8 +5,10 @@ const sql = postgres(connectionString);
 
 async function run() {
   try {
-    const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'inventory_weekly_snapshots'`;
-    console.log(JSON.stringify(cols.map(c => c.column_name), null, 2));
+    const view = await sql`SELECT view_definition FROM information_schema.views WHERE table_name = 'owner_weekly_trend_report'`;
+    console.log('VIEW_DEFINITION_START');
+    console.log(view[0].view_definition);
+    console.log('VIEW_DEFINITION_END');
   } catch (e) {
     console.error(e.message);
   } finally {

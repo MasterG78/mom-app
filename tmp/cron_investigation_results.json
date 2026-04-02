@@ -1,0 +1,119 @@
+{
+  "jobs": [
+    {
+      "jobid": "5",
+      "schedule": "0 1 * * 1,2,3,4,5",
+      "command": "\n                SELECT net.http_post(\n                    url := 'https://boyleodbpsgqtjbstcua.supabase.co/functions/v1/generate-production-report',\n                    headers := jsonb_build_object(\n                        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWxlb2RicHNncXRqYnN0Y3VhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDgxNzg4NywiZXhwIjoyMDYwMzkzODg3fQ.HUTqlzogDUiaFV-2Way2t_2QaRzyuPgynWfjG_j5uqw',\n                        'Content-Type', 'application/json'\n                    ),\n                    body := '{}'::jsonb\n                );\n                ",
+      "nodename": "localhost",
+      "nodeport": 5432,
+      "database": "postgres",
+      "username": "postgres",
+      "active": true,
+      "jobname": "daily-production-report"
+    }
+  ],
+  "logs": [
+    {
+      "jobid": "5",
+      "runid": "8",
+      "job_pid": 3001214,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "\n                SELECT net.http_post(\n                    url := 'https://boyleodbpsgqtjbstcua.supabase.co/functions/v1/generate-production-report',\n                    headers := jsonb_build_object(\n                        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWxlb2RicHNncXRqYnN0Y3VhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDgxNzg4NywiZXhwIjoyMDYwMzkzODg3fQ.HUTqlzogDUiaFV-2Way2t_2QaRzyuPgynWfjG_j5uqw',\n                        'Content-Type', 'application/json'\n                    ),\n                    body := '{}'::jsonb\n                );\n                ",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-04-02T01:00:00.189Z",
+      "end_time": "2026-04-02T01:00:00.296Z"
+    },
+    {
+      "jobid": "5",
+      "runid": "7",
+      "job_pid": 2956645,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "\n                SELECT net.http_post(\n                    url := 'https://boyleodbpsgqtjbstcua.supabase.co/functions/v1/generate-production-report',\n                    headers := jsonb_build_object(\n                        'Authorization', 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWxlb2RicHNncXRqYnN0Y3VhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDgxNzg4NywiZXhwIjoyMDYwMzkzODg3fQ.HUTqlzogDUiaFV-2Way2t_2QaRzyuPgynWfjG_j5uqw',\n                        'Content-Type', 'application/json'\n                    ),\n                    body := '{}'::jsonb\n                );\n                ",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-04-01T01:00:00.180Z",
+      "end_time": "2026-04-01T01:00:00.211Z"
+    },
+    {
+      "jobid": "4",
+      "runid": "6",
+      "job_pid": 2910730,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "\n      SELECT net.http_post(\n        url := 'https://boyleodbpsgqtjbstcua.supabase.co/functions/v1/generate-production-report',\n        headers := jsonb_build_object(\n          'Authorization', 'Bearer ' || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWxlb2RicHNncXRqYnN0Y3VhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NDgxNzg4NywiZXhwIjoyMDYwMzkzODg3fQ.HUTqlzogDUiaFV-2Way2t_2QaRzyuPgynWfjG_j5uqw',\n          'Content-Type', 'application/json'\n        ),\n        body := '{}'::jsonb\n      );\n    ",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-03-31T01:00:00.208Z",
+      "end_time": "2026-03-31T01:00:00.306Z"
+    },
+    {
+      "jobid": "2",
+      "runid": "5",
+      "job_pid": 2864081,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "\r\n  SELECT net.http_post(\r\n    url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url') || '/functions/v1/generate-production-report',\r\n    headers := jsonb_build_object(\r\n      'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key'),\r\n      'Content-Type', 'application/json'\r\n    ),\r\n    body := '{}'::jsonb\r\n  );\r\n  ",
+      "status": "failed",
+      "return_message": "ERROR:  null value in column \"url\" of relation \"http_request_queue\" violates not-null constraint\nDETAIL:  Failing row contains (1, POST, null, {\"Content-Type\": \"application/json\", \"Authorization\": null}, \\x7b7d, 5000).\nCONTEXT:  SQL statement \"insert into net.http_request_queue(method, url, headers, body, timeout_milliseconds)\n    values (\n        'POST',\n        net._encode_url_with_params_array(url, params_array),\n        headers,\n        convert_to(body::text, 'UTF8'),\n        timeout_milliseconds\n    )\n    returning id\"\nPL/pgSQL function net.http_post(text,jsonb,jsonb,jsonb,integer) line 37 at SQL statement\n",
+      "start_time": "2026-03-30T01:00:00.167Z",
+      "end_time": "2026-03-30T01:00:00.235Z"
+    },
+    {
+      "jobid": "1",
+      "runid": "4",
+      "job_pid": 2862250,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "SELECT generate_weekly_inventory_snapshot();",
+      "status": "failed",
+      "return_message": "ERROR:  column \"sold_value\" of relation \"inventory_weekly_snapshots\" does not exist\nLINE 6:         sold_value,\n                ^\nQUERY:  INSERT INTO inventory_weekly_snapshots (\r\n        week_ending,\r\n        starting_value,\r\n        sales_value,\r\n        cogs_value,\r\n        sold_value,\r\n        produced_value,\r\n        issued_value,\r\n        void_value,\r\n        actual_closing_value,\r\n        notes\r\n    )\r\n    SELECT \r\n        week_end_date,\r\n        prev_closing,\r\n        -- Revenue from View\r\n        COALESCE((SELECT SUM(item_sale_price) FROM inventory_tag_sales_report WHERE sale_date BETWEEN start_date AND end_date), 0),\r\n        -- COGS from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE invoice_number IS NOT NULL AND produced BETWEEN start_date AND end_date), 0),\r\n        -- Sold Value from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE invoice_number IS NOT NULL AND produced BETWEEN start_date AND end_date), 0),\r\n        -- Produced Value from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE produced BETWEEN start_date AND end_date), 0),\r\n        -- Issued Value (Aliased i.inventory_value)\r\n        COALESCE((SELECT SUM(inv.inventory_value) FROM inventory inv JOIN status_changes sc ON inv.id = sc.inventory_id WHERE sc.status_id = (SELECT id FROM statuses WHERE status_name = 'Issued') AND sc.created_at BETWEEN start_date AND end_date), 0),\r\n        -- Void Value (Aliased i.inventory_value)\r\n        COALESCE((SELECT SUM(inv.inventory_value) FROM inventory inv JOIN status_changes sc ON inv.id = sc.inventory_id WHERE sc.status_id IN (SELECT id FROM statuses WHERE status_name IN ('Void', 'Missing')) AND sc.created_at BETWEEN start_date AND end_date), 0),\r\n        -- In Stock Value (Note: View uses 'total_value' instead of 'inventory_value')\r\n        COALESCE((SELECT SUM(total_value) FROM inventory_report_view WHERE current_status = 'In Stock'), 0),\r\n        'Automated Snapshot'\r\n    ON CONFLICT (week_ending) DO UPDATE SET\r\n        actual_closing_value = EXCLUDED.actual_closing_value,\r\n        notes = 'Updated ' || now()\nCONTEXT:  PL/pgSQL function generate_weekly_inventory_snapshot() line 21 at SQL statement\n",
+      "start_time": "2026-03-29T23:59:00.197Z",
+      "end_time": "2026-03-29T23:59:00.266Z"
+    },
+    {
+      "jobid": "1",
+      "runid": "3",
+      "job_pid": 2549867,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "SELECT generate_weekly_inventory_snapshot();",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-03-22T23:59:00.190Z",
+      "end_time": "2026-03-22T23:59:00.609Z"
+    },
+    {
+      "jobid": "1",
+      "runid": "2",
+      "job_pid": 2241829,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "SELECT generate_weekly_inventory_snapshot();",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-03-15T23:59:00.168Z",
+      "end_time": "2026-03-15T23:59:00.543Z"
+    },
+    {
+      "jobid": "1",
+      "runid": "1",
+      "job_pid": 1934096,
+      "database": "postgres",
+      "username": "postgres",
+      "command": "SELECT generate_weekly_inventory_snapshot();",
+      "status": "succeeded",
+      "return_message": "1 row",
+      "start_time": "2026-03-08T23:59:00.243Z",
+      "end_time": "2026-03-08T23:59:00.587Z"
+    }
+  ],
+  "funcs": [
+    {
+      "routine_name": "generate_weekly_inventory_snapshot",
+      "routine_definition": "\r\nDECLARE\r\n    prev_closing numeric;\r\n    start_date timestamptz;\r\n    end_date timestamptz;\r\n    week_end_date date;\r\nBEGIN\r\n    -- 1. Setup Timeframe\r\n    week_end_date := CURRENT_DATE;\r\n    start_date := date_trunc('week', CURRENT_DATE - interval '7 days');\r\n    end_date := date_trunc('week', CURRENT_DATE) - interval '1 second';\r\n\r\n    -- 2. Carry forward the Balance\r\n    SELECT actual_closing_value INTO prev_closing\r\n    FROM inventory_weekly_snapshots\r\n    ORDER BY week_ending DESC LIMIT 1;\r\n\r\n    IF prev_closing IS NULL THEN prev_closing := 0; END IF;\r\n\r\n    -- 3. Execute the Snapshot\r\n    INSERT INTO inventory_weekly_snapshots (\r\n        week_ending,\r\n        starting_value,\r\n        sales_value,\r\n        cogs_value,\r\n        sold_value,\r\n        produced_value,\r\n        issued_value,\r\n        void_value,\r\n        actual_closing_value,\r\n        notes\r\n    )\r\n    SELECT \r\n        week_end_date,\r\n        prev_closing,\r\n        -- Revenue from View\r\n        COALESCE((SELECT SUM(item_sale_price) FROM inventory_tag_sales_report WHERE sale_date BETWEEN start_date AND end_date), 0),\r\n        -- COGS from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE invoice_number IS NOT NULL AND produced BETWEEN start_date AND end_date), 0),\r\n        -- Sold Value from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE invoice_number IS NOT NULL AND produced BETWEEN start_date AND end_date), 0),\r\n        -- Produced Value from Table\r\n        COALESCE((SELECT SUM(inventory_value) FROM inventory WHERE produced BETWEEN start_date AND end_date), 0),\r\n        -- Issued Value (Aliased i.inventory_value)\r\n        COALESCE((SELECT SUM(inv.inventory_value) FROM inventory inv JOIN status_changes sc ON inv.id = sc.inventory_id WHERE sc.status_id = (SELECT id FROM statuses WHERE status_name = 'Issued') AND sc.created_at BETWEEN start_date AND end_date), 0),\r\n        -- Void Value (Aliased i.inventory_value)\r\n        COALESCE((SELECT SUM(inv.inventory_value) FROM inventory inv JOIN status_changes sc ON inv.id = sc.inventory_id WHERE sc.status_id IN (SELECT id FROM statuses WHERE status_name IN ('Void', 'Missing')) AND sc.created_at BETWEEN start_date AND end_date), 0),\r\n        -- In Stock Value (Note: View uses 'total_value' instead of 'inventory_value')\r\n        COALESCE((SELECT SUM(total_value) FROM inventory_report_view WHERE current_status = 'In Stock'), 0),\r\n        'Automated Snapshot'\r\n    ON CONFLICT (week_ending) DO UPDATE SET\r\n        actual_closing_value = EXCLUDED.actual_closing_value,\r\n        notes = 'Updated ' || now();\r\nEND;\r\n"
+    }
+  ]
+}
