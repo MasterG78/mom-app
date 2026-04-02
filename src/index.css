@@ -86,3 +86,16 @@ button:focus-visible {
     padding-right: 100px;
   }
 }
+
+/* Hide number input spinners for cleaner UI and to prevent accidental increments */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  appearance: none;
+  margin: 0; 
+}
+
+input[type=number] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

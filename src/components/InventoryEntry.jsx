@@ -151,6 +151,13 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
     const qtyValue = formData.quantity ? parseInt(formData.quantity) : 0;
     const isBoardFeetProduct = selectedProduct && selectedProduct.unit_type === 'Bd Ft';
 
+    if (isBoardFeetProduct && (finalBoardFeet > 2000 || finalBoardFeet < 200)) {
+      if (!window.confirm(`The Board Feet total (${finalBoardFeet}) seems unusual. Are you sure you want to continue?`)) {
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const unitCost = parseFloat(selectedProduct.unit_inv_value) || 0;
       const snapshotValue = isBoardFeetProduct ? (finalBoardFeet * unitCost) : (qtyValue * unitCost);
@@ -414,9 +421,9 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
             gridTemplateColumns: 'repeat(5, 1fr)',
             padding: '10px'
           }}>
-            <div style={inputGroupStyle}><label style={labelStyle}>Length (Ft)</label><input name="length" type="number" step="0.1" value={formData.length} onChange={handleChange} style={inputStyle} /></div>
-            <div style={inputGroupStyle}><label style={labelStyle}>Width (In)</label><input name="width" type="number" step="0.1" value={formData.width} onChange={handleChange} style={inputStyle} /></div>
-            <div style={inputGroupStyle}><label style={labelStyle}>Rows</label><input name="rows" type="number" value={formData.rows} onChange={handleChange} style={inputStyle} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Length (Ft)</label><input name="length" type="number" step="0.1" value={formData.length} onChange={handleChange} onWheel={(e) => e.target.blur()} style={inputStyle} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Width (In)</label><input name="width" type="number" step="0.1" value={formData.width} onChange={handleChange} onWheel={(e) => e.target.blur()} style={inputStyle} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Rows</label><input name="rows" type="number" value={formData.rows} onChange={handleChange} onWheel={(e) => e.target.blur()} style={inputStyle} /></div>
             <div style={inputGroupStyle}>
               <label style={labelStyle}>Gap (space between boards)</label>
               <select name="gap" value={formData.gap} onChange={handleChange} style={inputStyle}>
@@ -428,7 +435,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
                 <option value="5">5</option>
               </select>
             </div>
-            <div style={inputGroupStyle}><label style={labelStyle}>Board Feet</label><input name="boardfeet" type="number" step="0.01" value={formData.boardfeet} onChange={handleChange} style={{ ...inputStyle, backgroundColor: bfInputBackgroundColor }} /></div>
+            <div style={inputGroupStyle}><label style={labelStyle}>Board Feet</label><input name="boardfeet" type="number" step="0.01" value={formData.boardfeet} onChange={handleChange} onWheel={(e) => e.target.blur()} style={{ ...inputStyle, backgroundColor: bfInputBackgroundColor }} /></div>
           </div>
         )}
 
