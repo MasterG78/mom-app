@@ -16,6 +16,7 @@ export default function InventoryManager({ isTest, session }) {
   const [formData, setFormData] = useState({
     product_id: '',
     species_id: '',
+    line: '',
     boardfeet: '',
     quantity: '',
     inventory_value: '',
@@ -62,6 +63,7 @@ export default function InventoryManager({ isTest, session }) {
         setFormData({
           product_id: data.product_id || '',
           species_id: data.species_id || '',
+          line: data.line || '',
           boardfeet: data.boardfeet || '',
           quantity: data.quantity || '',
           inventory_value: data.inventory_value ? parseFloat(data.inventory_value).toFixed(2) : '',
@@ -351,6 +353,18 @@ export default function InventoryManager({ isTest, session }) {
             </div>
 
             <div style={fieldRowStyle}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Production Line</label>
+                <select name="line" value={formData.line} onChange={handleChange} style={inputStyle}>
+                  <option value="">-- Select Line --</option>
+                  <option value="A">Line A</option>
+                  <option value="B">Line B</option>
+                  <option value="C">Line C</option>
+                  <option value="D">Line D</option>
+                  <option value="P">Line P</option>
+                  <option value="R">Line R</option>
+                </select>
+              </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Tagger</label>
                 <input type="text" name="tagger" value={formData.tagger} onChange={handleChange} placeholder="e.g. JD" style={inputStyle} />
