@@ -237,6 +237,15 @@ function buildHtmlReport(rows: ProcessedRow[], weekLabel: string, dateStr: strin
 </html>`;
 }
 
+// ── Date Helpers ──────────────────────────────────────────────────────
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+
+function endOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
 // ── HTML-to-PDF via print-style rendering ──────────────────────────────
 // Supabase Edge Functions run Deno — we use jsPDF for lightweight PDF
 // generation without a headless browser.
@@ -340,6 +349,115 @@ async function htmlTableToPdf(rows: ProcessedRow[], weekLabel: string, dateStr: 
   return doc.output("arraybuffer") as unknown as Uint8Array;
 }
 
+// ── NEW: Inventory Evaluation PDF (Tag-level report) ────────────────────
+async function generateInventoryEvaluationPdf(data: any[], title: string, timeframe: string): Promise<Uint8Array> {
+  const { jsPDF } = await import("https://esm.sh/jspdf@2.5.2");
+  const autoTable = (await import("https://esm.sh/jspdf-autotable@3.8.4")).default;
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+  // ── Header ──
+  doc.setFillColor(45, 80, 22); // Dark green
+  doc.rect(0, 0, 297, 30, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text("Mountain Oak Mill", 148.5, 14, { align: "center" });
+  doc.setFontSize(11);
+  doc.text(title, 148.5, 22, { align: "center" });
+
+  // ── Subheader ──
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(10);
+  doc.text(`Timeframe: ${timeframe}`, 148.5, 38, { align: "center" });
+
+  // ── Table Data ──
+  const tableHead = [["Tag #", "Date", "Line", "Product Name", "Status", "Qty", "BF", "Value ($)", "Invoice #", "Customer"]];
+  
+  // Sort logic: produced desc, tag desc
+  const sortedData = [...data].sort((a, b) => {
+    const dateA = a.produced ? a.produced.split('T')[0] : '';
+    const dateB = b.produced ? b.produced.split('T')[0] : '';
+    if (dateA !== dateB) return dateB.localeCompare(dateA);
+    // Tag sort (numeric-aware)
+    return (String(b.tag || '')).localeCompare(String(a.tag || ''), undefined, { numeric: true });
+  });
+
+  const tableBody = sortedData.length > 0 ? sortedData.map(row => [
+    row.tag || "-",
+    row.produced ? formatDate(new Date(row.produced)) : "-",
+    row.line || "-",
+    row.product_name || "-",
+    row.current_status || "-",
+    row.quantity?.toLocaleString() || "-",
+    row.boardfeet?.toLocaleString() || "-",
+    `$${formatCurrency(parseFloat(row.total_value) || 0)}`,
+    row.invoice_number || "-",
+    row.customer_name || "-"
+  ]) : [[{ content: "No inventory records found for this period.", colSpan: 10, styles: { halign: "center", fontStyle: "italic", padding: 10 } }]];
+
+  // Calculate totals if data exists
+  if (sortedData.length > 0) {
+    let totalVal = 0, totalBf = 0, totalQty = 0;
+    sortedData.forEach(item => {
+      totalVal += parseFloat(item.total_value) || 0;
+      totalBf += parseFloat(item.boardfeet) || 0;
+      totalQty += parseFloat(item.quantity) || 0;
+    });
+
+    tableBody.push([
+      { content: "GRAND TOTAL", colSpan: 5, styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+      { content: totalQty.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+      { content: totalBf.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+      { content: `$${formatCurrency(totalVal)}`, styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+      { content: "", styles: { fillColor: [45, 80, 22] } },
+      { content: "", styles: { fillColor: [45, 80, 22] } }
+    ]);
+  }
+
+  // deno-lint-ignore no-explicit-any
+  autoTable(doc as any, {
+    startY: 45,
+    head: tableHead,
+    body: tableBody,
+    theme: "grid",
+    headStyles: { fillColor: [58, 107, 30], textColor: [255, 255, 255], fontSize: 8, fontStyle: "bold" },
+    styles: { fontSize: 7.5, cellPadding: 2 },
+    columnStyles: {
+      0: { cellWidth: 15 }, // Tag
+      1: { cellWidth: 20 }, // Date
+      2: { cellWidth: 10 }, // Line
+      3: { cellWidth: 'auto' }, // Product Name
+      4: { cellWidth: 20 }, // Status
+      5: { cellWidth: 15, halign: 'right' }, // Qty
+      6: { cellWidth: 15, halign: 'right' }, // BF
+      7: { cellWidth: 25, halign: 'right' }, // Value
+      8: { cellWidth: 20 }, // Invoice
+      9: { cellWidth: 25 }, // Customer
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  // ── Footer ──
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(8);
+  doc.setTextColor(136, 136, 136);
+  doc.text(
+    "Mountain Oak Mill • Inventory Evaluation Report • Generated automatically",
+    148.5,
+    pageHeight - 10,
+    { align: "center" }
+  );
+
+  return doc.output("arraybuffer") as unknown as Uint8Array;
+}
+
+// ── Date Utility ──────────────────────────────────────────────────────
+function getSpecificDate(now: Date, dayOffset: number): Date {
+  const d = new Date(now);
+  d.setDate(now.getDate() + dayOffset);
+  return d;
+}
+
 // ── Main Handler ───────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   try {
@@ -372,14 +490,19 @@ Deno.serve(async (req) => {
     // ── Supabase client (service role for server-side access) ──
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // 1. Fetch data
+    // ── Timing ──
+    const now = todayET();
+    const dateStr = formatDate(now);
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+
+    // 1. Fetch data for Summary Report (mirrors current logic)
     const { data: reportData, error: reportError } = await supabase
       .from("inventory_report_view")
       .select("*")
       .order("produced", { ascending: false });
 
     if (reportError) {
-      throw new Error(`Failed to fetch report data: ${reportError.message}`);
+      throw new Error(`Failed to fetch summary data: ${reportError.message}`);
     }
 
     const { data: goalsData, error: goalsError } = await supabase
@@ -390,23 +513,88 @@ Deno.serve(async (req) => {
       throw new Error(`Failed to fetch goals: ${goalsError.message}`);
     }
 
-    // 2. Process data (mirrors Production.jsx logic)
-    const { rows, weekLabel } = processReport(reportData || [], goalsData || []);
+    // 2. Process Summary Data (Line-grouped, excludes Void)
+    const { rows: summaryRows, weekLabel } = processReport(reportData || [], goalsData || []);
 
-    // 3. Generate date string for the email subject
-    const now = todayET();
-    const dateStr = formatDate(now);
+    // 3. Generate Summary PDF
+    const summaryPdfBytes = await htmlTableToPdf(summaryRows, weekLabel, dateStr);
+    const summaryPdfBase64 = btoa(String.fromCharCode(...new Uint8Array(summaryPdfBytes)));
 
-    // 4. Generate PDF
-    const pdfBytes = await htmlTableToPdf(rows, weekLabel, dateStr);
-    const pdfBase64 = btoa(
-      String.fromCharCode(...new Uint8Array(pdfBytes))
-    );
+    // 4. PREPARE ATTACHMENTS
+    const attachments: any[] = [
+      {
+        filename: `Production_Summary_${dateStr.replace(/\//g, "-")}.pdf`,
+        content: summaryPdfBase64,
+      },
+    ];
 
-    // 5. Build branded HTML email body
-    const emailHtml = buildHtmlReport(rows, weekLabel, dateStr);
+    // 5. Logic for Additional Tag-level Reports (Includes Void)
+    interface ReportRange {
+      title: string;
+      filename: string;
+      start: Date;
+      end: Date;
+      timeLabel: string;
+    }
 
-    // 6. Send email via Resend
+    const ranges: ReportRange[] = [];
+    if (dayOfWeek === 0) {
+      // Sunday: Friday Report + Weekend (Sat-Sun) Report
+      const friday = getSpecificDate(now, -2);
+      const saturday = getSpecificDate(now, -1);
+      const sunday = now;
+
+      ranges.push({
+        title: "Inventory Evaluation Report — Friday",
+        filename: `Friday_Evaluation_Report_${formatDate(friday).replace(/\//g, "-")}.pdf`,
+        start: startOfDay(friday),
+        end: endOfDay(friday),
+        timeLabel: formatDate(friday)
+      });
+      ranges.push({
+        title: "Inventory Evaluation Report — Weekend",
+        filename: `Weekend_Evaluation_Report_${formatDate(saturday).replace(/\//g, "-")}_to_${formatDate(sunday).replace(/\//g, "-")}.pdf`,
+        start: startOfDay(saturday),
+        end: endOfDay(sunday),
+        timeLabel: `${formatDate(saturday)} - ${formatDate(sunday)}`
+      });
+    } else {
+      // Mon-Thu: Today only
+      ranges.push({
+        title: "Inventory Evaluation Report — Daily",
+        filename: `Evaluation_Report_${dateStr.replace(/\//g, "-")}.pdf`,
+        start: startOfDay(now),
+        end: endOfDay(now),
+        timeLabel: dateStr
+      });
+    }
+
+    // Generate additional reports
+    for (const range of ranges) {
+      const { data: rangeData, error: rangeError } = await supabase
+        .from("inventory_report_view")
+        .select("*")
+        .gte("produced", range.start.toISOString())
+        .lte("produced", range.end.toISOString());
+
+      if (rangeError) throw new Error(`Failed to fetch ${range.title}: ${rangeError.message}`);
+
+      const rangePdfBytes = await generateInventoryEvaluationPdf(
+        rangeData || [],
+        range.title,
+        range.timeLabel
+      );
+
+      attachments.push({
+        filename: range.filename,
+        content: btoa(String.fromCharCode(...new Uint8Array(rangePdfBytes))),
+      });
+    }
+
+    // 6. Build branded HTML email body
+    const emailHtml = buildHtmlReport(summaryRows, weekLabel, dateStr);
+
+    // 7. Send email via Resend
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -417,14 +605,9 @@ Deno.serve(async (req) => {
         from: emailFrom,
         to: [emailTo],
         reply_to: replyTo,
-        subject: `Mountain Oak Mill — Daily Production Report — ${dateStr}`,
+        subject: `Mountain Oak Mill — Production & Evaluation Reports — ${dateStr}`,
         html: emailHtml,
-        attachments: [
-          {
-            filename: `Production_Report_${dateStr.replace(/\//g, "-")}.pdf`,
-            content: pdfBase64,
-          },
-        ],
+        attachments: attachments,
       }),
     });
 
@@ -437,10 +620,10 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Report sent to ${emailTo}`,
+        message: `Reports sent to ${emailTo}`,
         resend_id: resendResult.id,
         week: weekLabel,
-        rows_in_report: rows.length,
+        total_attachments: attachments.length,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
