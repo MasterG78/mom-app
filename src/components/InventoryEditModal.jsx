@@ -56,6 +56,7 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
   const [products, setProducts] = useState([])
   const [allSpecies, setAllSpecies] = useState([])
   const [filteredSpecies, setFilteredSpecies] = useState([])
+  const [statuses, setStatuses] = useState([])
   const [selectedProduct, setSelectedProduct] = useState(null)
   const [calculatedBoardFeet, setCalculatedBoardFeet] = useState('');
 
@@ -71,7 +72,8 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
     note: bundle.note || '',
     customer_name: bundle.customer_name || '',
     tagger: bundle.tagger || bundle.tagger_name || '',
-    copies: 0
+    copies: 0,
+    status_id: bundle.status_id || ''
   })
 
   // 1. Initial Data Fetch (Products & Species)
@@ -88,11 +90,22 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
         .select('*')
         .order('product_name');
       setProducts(productData || []);
+
+      const { data: statusData } = await supabase
+        .from('statuses')
+        .select('*')
+        .order('status_name');
+      setStatuses(statusData || []);
       
       // Find initial product
       if (bundle.product_id) {
-        const product = productData?.find(p => p.id === bundle.product_id);
-        if (product) setSelectedProduct(product);
+        const product = productData?.find(p => p.id == bundle.product_id);
+        if (product) {
+          setSelectedProduct(product);
+        } else {
+          // Product no longer exists, blank it out in the form
+          setFormData(prev => ({ ...prev, product_id: '' }));
+        }
       }
     }
     fetchInitialData()
@@ -219,6 +232,25 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
 
       if (error) throw error
 
+      // If status changed, record it in status_changes (Manual Status Override)
+      if (formData.status_id && Number(formData.status_id) !== Number(bundle.status_id)) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const { error: statusError } = await supabase
+          .from('status_changes')
+          .insert([{
+            inventory_id: bundle.id,
+            status_id: formData.status_id,
+            updated_by: session?.user?.id,
+            notes: formData.note || 'Status adjusted via unified Edit Modal'
+          }]);
+        
+        if (statusError) {
+          console.error("Error recording status change:", statusError);
+          // We don't throw here to avoid blocking the main update, but we alert
+          alert("Inventory updated, but status change log failed: " + statusError.message);
+        }
+      }
+
       // Print Tag if requested
       if (formData.copies > 0) {
         const bundleData = { ...data[0], isTest: isTest };
@@ -278,12 +310,6 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
                   {products.map((prod) => (
                     <option key={prod.id} value={prod.id}>{prod.product_name} ({prod.unit_type})</option>
                   ))}
-                  {/* Handle deleted products by showing the snapshot name */}
-                  {formData.product_id && !products.find(p => p.id == formData.product_id) && (
-                    <option value={formData.product_id} disabled>
-                      {bundle.product_name} (Legacy/Deleted)
-                    </option>
-                  )}
                 </select>
             </div>
 
@@ -298,7 +324,7 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
             </div>
           </div>
 
-          {/* Row 2: Production Line | Tagger | Copies */}
+          {/* Row 2: Production Line | Tagger | Status */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
             <div style={inputGroupStyle}>
               <label style={labelStyle}>Production Line</label>
@@ -314,6 +340,16 @@ export default function InventoryEditModal({ bundle, onClose, onRefresh, isTest 
               <input name="tagger" type="text" value={formData.tagger} onChange={handleChange} required style={inputStyle} />
             </div>
 
+            <div style={inputGroupStyle}>
+              <label style={labelStyle}>Manual Status Override</label>
+              <select name="status_id" value={formData.status_id} onChange={handleChange} style={{ ...inputStyle, border: '1px solid #ffc107', backgroundColor: '#fffbe6' }}>
+                {statuses.map(st => <option key={st.id} value={st.id}>{st.status_name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Row 3: Re-print Copies */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
             <div style={inputGroupStyle}>
               <label style={labelStyle}>Re-print Copies?</label>
               <select name="copies" value={formData.copies} onChange={handleChange} style={inputStyle}>
