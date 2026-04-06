@@ -451,6 +451,129 @@ async function generateInventoryEvaluationPdf(data: any[], title: string, timefr
   return doc.output("arraybuffer") as unknown as Uint8Array;
 }
 
+// ── NEW: In-Stock Valuation PDF (Subtotaled by Product) ─────────────────
+async function generateInStockValuationPdf(data: any[], dateStr: string): Promise<Uint8Array> {
+  const { jsPDF } = await import("https://esm.sh/jspdf@2.5.2");
+  const autoTable = (await import("https://esm.sh/jspdf-autotable@3.8.4")).default;
+
+  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+
+  // ── Header ──
+  doc.setFillColor(45, 80, 22); // Dark green
+  doc.rect(0, 0, 297, 30, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.text("Mountain Oak Mill", 148.5, 14, { align: "center" });
+  doc.setFontSize(11);
+  doc.text("In Stock Inventory Valuation Report", 148.5, 22, { align: "center" });
+
+  // ── Subheader ──
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(10);
+  doc.text(`As of: ${dateStr}`, 148.5, 38, { align: "center" });
+
+  // ── Group data by product ──
+  const groups: Record<string, any[]> = {};
+  data.forEach(row => {
+    const product = row.product_name || "Uncategorized";
+    if (!groups[product]) groups[product] = [];
+    groups[product].push(row);
+  });
+
+  const sortedProducts = Object.keys(groups).sort();
+  const tableHead = [["Tag #", "Date", "Line", "Status", "Qty", "BF", "Value ($)", "Invoice #", "Customer"]];
+  const tableBody: (string | { content: string; colSpan?: number; styles: Record<string, unknown> })[][] = [];
+
+  let grandTotalVal = 0, grandTotalBf = 0, grandTotalQty = 0;
+
+  sortedProducts.forEach(product => {
+    const items = groups[product];
+    let subVal = 0, subBf = 0, subQty = 0;
+
+    // Product Section Header
+    tableBody.push([
+      { content: product.toUpperCase(), colSpan: 9, styles: { fontStyle: "bold", fillColor: [233, 236, 239], fontSize: 9 } }
+    ]);
+
+    // Individual Tags
+    items.forEach(item => {
+      const val = parseFloat(item.total_value) || 0;
+      const bf = parseFloat(item.boardfeet) || 0;
+      const qty = parseFloat(item.quantity) || 0;
+      subVal += val;
+      subBf += bf;
+      subQty += qty;
+
+      tableBody.push([
+        String(item.tag || "-"),
+        item.produced ? formatDate(new Date(item.produced)) : "-",
+        item.line || "-",
+        item.current_status || "-",
+        qty.toLocaleString() || "-",
+        bf.toLocaleString() || "-",
+        `$${formatCurrency(val)}`,
+        item.invoice_number || "-",
+        item.customer_name || "-"
+      ]);
+    });
+
+    // Subtotal Row
+    tableBody.push([
+      { content: "Product Subtotal", colSpan: 4, styles: { halign: "right", fontStyle: "bold", fillColor: [248, 249, 250] } },
+      { content: subQty.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [248, 249, 250] } },
+      { content: subBf.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [248, 249, 250] } },
+      { content: `$${formatCurrency(subVal)}`, styles: { halign: "right", fontStyle: "bold", fillColor: [248, 249, 250] } },
+      { content: "", colSpan: 2, styles: { fillColor: [248, 249, 250] } }
+    ]);
+
+    grandTotalVal += subVal;
+    grandTotalBf += subBf;
+    grandTotalQty += subQty;
+  });
+
+  // Grand Total
+  tableBody.push([
+    { content: "GRAND TOTAL", colSpan: 4, styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+    { content: grandTotalQty.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+    { content: grandTotalBf.toLocaleString(), styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+    { content: `$${formatCurrency(grandTotalVal)}`, styles: { halign: "right", fontStyle: "bold", fillColor: [45, 80, 22], textColor: [255, 255, 255] } },
+    { content: "", colSpan: 2, styles: { fillColor: [45, 80, 22] } }
+  ]);
+
+  // deno-lint-ignore no-explicit-any
+  autoTable(doc as any, {
+    startY: 45,
+    head: tableHead,
+    body: tableBody,
+    theme: "grid",
+    headStyles: { fillColor: [38, 70, 20], textColor: [255, 255, 255], fontSize: 8, fontStyle: "bold" },
+    styles: { fontSize: 7, cellPadding: 1.5 },
+    columnStyles: {
+      0: { cellWidth: 15 }, // Tag
+      1: { cellWidth: 20 }, // Date
+      2: { cellWidth: 10 }, // Line
+      4: { cellWidth: 15, halign: "right" }, // Qty
+      5: { cellWidth: 15, halign: "right" }, // BF
+      6: { cellWidth: 25, halign: "right" }, // Value
+      7: { cellWidth: 20 }, // Invoice
+    },
+    margin: { left: 10, right: 10 },
+  });
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setFontSize(8);
+  doc.setTextColor(136, 136, 136);
+  doc.text(
+    "Mountain Oak Mill \u2022 Inventory Valuation Report \u2022 Generated automatically",
+    148.5,
+    pageHeight - 10,
+    { align: "center" }
+  );
+
+  return doc.output("arraybuffer") as unknown as Uint8Array;
+}
+
+
 // ── Date Utility ──────────────────────────────────────────────────────
 function getSpecificDate(now: Date, dayOffset: number): Date {
   const d = new Date(now);
@@ -490,10 +613,66 @@ Deno.serve(async (req) => {
     // ── Supabase client (service role for server-side access) ──
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
+    // ── Request Parsing ──
+    let reportType = "standard"; // default
+    try {
+      const body = await req.json();
+      if (body?.report_type) {
+        reportType = body.report_type;
+      }
+    } catch {
+      // Body might be empty, ignore
+    }
+
     // ── Timing ──
     const now = todayET();
     const dateStr = formatDate(now);
     const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+
+    // ── BRANCH: In-Stock Valuation Report ──
+    if (reportType === "in-stock-valuation") {
+      const { data: inStockData, error: inStockError } = await supabase
+        .from("inventory_report_view")
+        .select("*")
+        .eq("current_status", "In Stock");
+
+      if (inStockError) throw new Error(`In-stock data fetch error: ${inStockError.message}`);
+
+      const pdfBytes = await generateInStockValuationPdf(inStockData || [], dateStr);
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+
+      const resendResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: emailFrom,
+          to: [emailTo],
+          reply_to: replyTo,
+          subject: `MOM — In Stock Inventory Valuation — ${dateStr}`,
+          html: `<p>Please find the attached In Stock Inventory Valuation report for <strong>${dateStr}</strong>.</p><p>This report includes all products currently marked as "In Stock" subtotaled by product name.</p>`,
+          attachments: [
+            {
+              filename: `In_Stock_Valuation_${dateStr.replace(/\//g, "-")}.pdf`,
+              content: pdfBase64,
+            },
+          ],
+        }),
+      });
+
+      if (!resendResponse.ok) {
+        const error = await resendResponse.text();
+        throw new Error(`Resend error: ${error}`);
+      }
+
+      return new Response(JSON.stringify({ success: true, message: "In-stock report sent" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── BRANCH: Standard Production Report (original logic) ──
 
     // 1. Fetch data for Summary Report (mirrors current logic)
     const { data: reportData, error: reportError } = await supabase
