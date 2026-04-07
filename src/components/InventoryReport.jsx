@@ -371,7 +371,12 @@ export default function InventoryReport() {
               onChange={(e) => {
                 const newSort = e.target.value;
                 setSortBy(newSort);
-                setStatusFilter(newSort === 'product' ? 'In Stock' : 'All');
+                if (newSort === 'product') {
+                  setStatusFilter('In Stock');
+                  setDateRange('All');
+                } else {
+                  setStatusFilter('All');
+                }
               }} 
               style={{ padding: '5px' }}
             >

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from './services/supabaseClient'
 import Auth from './components/Auth'
 import InventoryEntry from './components/InventoryEntry'
@@ -25,12 +25,13 @@ export default function App() {
   const [effectiveRole, setEffectiveRole] = useState(null) // Active role (can be changed by admin)
   const [refreshKey, setRefreshKey] = useState(0)
   const [loading, setLoading] = useState(true) // Initial loading state
+  const hasLoadedRole = useRef(false)
 
   // NAVIGATION control ('entry', 'products', 'reports', or 'manager')
   const [view, setView] = useState('entry')
 
-  const fetchUserRole = async (userId, userEmail) => {
-    setLoading(true);
+  const fetchUserRole = async (userId, userEmail, showLoading = true) => {
+    if (showLoading) setLoading(true);
     try {
       const { data, error } = await supabase
         .from('user_roles')
@@ -52,7 +53,7 @@ export default function App() {
       setUserRole('unauthorized');
       setEffectiveRole('unauthorized');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -71,7 +72,8 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       if (session?.user?.id) {
-        fetchUserRole(session.user.id, session.user.email)
+        fetchUserRole(session.user.id, session.user.email, true)
+        hasLoadedRole.current = true
       } else {
         setLoading(false);
       }
@@ -82,7 +84,9 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
       if (session?.user?.id) {
-        fetchUserRole(session.user.id, session.user.email)
+        const shouldShowLoading = !hasLoadedRole.current;
+        fetchUserRole(session.user.id, session.user.email, shouldShowLoading)
+        hasLoadedRole.current = true
       } else {
         setUserRole(null)
         setEffectiveRole(null)
