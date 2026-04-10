@@ -10,11 +10,14 @@ export default function InventoryList() {
   useEffect(() => {
     const fetchBundles = async () => {
       setLoading(true);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       const { data, error } = await supabase
         .from('inventory_view')
         .select(`*`)
-        .order('produced', { ascending: false })
-        .limit(10);
+        .gte('produced', today.toISOString())
+        .order('produced', { ascending: false });
 
       if (error) {
         console.error('Error fetching inventory:', error.message);

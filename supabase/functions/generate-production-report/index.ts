@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { jsPDF } from "https://esm.sh/jspdf@2.5.2";
+import autoTable from "https://esm.sh/jspdf-autotable@3.8.4";
 
 // ── Helpers ────────────────────────────────────────────────────────────
 function startOfWeek(d: Date): Date {
@@ -24,6 +26,15 @@ function formatDate(d: Date): string {
 
 function formatCurrency(val: number): string {
   return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function uint8ArrayToBase64(uint8: Uint8Array): string {
+  let binary = "";
+  const len = uint8.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(uint8[i]);
+  }
+  return btoa(binary);
 }
 
 function todayET(): Date {
@@ -59,8 +70,7 @@ interface ProcessedRow {
   diff: number;
 }
 
-function processReport(reportData: ReportRow[], goals: Goal[]): { rows: ProcessedRow[]; weekLabel: string } {
-  const now = todayET();
+function processReport(reportData: ReportRow[], goals: Goal[], now: Date): { rows: ProcessedRow[]; weekLabel: string } {
   const weekStart = startOfWeek(now);
   const weekEnd = endOfWeek(now);
   const weekLabel = `${formatDate(weekStart)} - ${formatDate(weekEnd)}`;
@@ -250,9 +260,6 @@ function endOfDay(d: Date): Date {
 // Supabase Edge Functions run Deno — we use jsPDF for lightweight PDF
 // generation without a headless browser.
 async function htmlTableToPdf(rows: ProcessedRow[], weekLabel: string, dateStr: string): Promise<Uint8Array> {
-  const { jsPDF } = await import("https://esm.sh/jspdf@2.5.2");
-  const autoTable = (await import("https://esm.sh/jspdf-autotable@3.8.4")).default;
-
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
   // ── Header ──
@@ -351,9 +358,6 @@ async function htmlTableToPdf(rows: ProcessedRow[], weekLabel: string, dateStr: 
 
 // ── NEW: Inventory Evaluation PDF (Tag-level report) ────────────────────
 async function generateInventoryEvaluationPdf(data: any[], title: string, timeframe: string): Promise<Uint8Array> {
-  const { jsPDF } = await import("https://esm.sh/jspdf@2.5.2");
-  const autoTable = (await import("https://esm.sh/jspdf-autotable@3.8.4")).default;
-
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
   // ── Header ──
@@ -453,9 +457,6 @@ async function generateInventoryEvaluationPdf(data: any[], title: string, timefr
 
 // ── NEW: In-Stock Valuation PDF (Subtotaled by Product) ─────────────────
 async function generateInStockValuationPdf(data: any[], dateStr: string): Promise<Uint8Array> {
-  const { jsPDF } = await import("https://esm.sh/jspdf@2.5.2");
-  const autoTable = (await import("https://esm.sh/jspdf-autotable@3.8.4")).default;
-
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
   // ── Header ──
@@ -614,18 +615,28 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // ── Request Parsing ──
-    let reportType = "standard"; // default
-    try {
-      const body = await req.json();
-      if (body?.report_type) {
-        reportType = body.report_type;
-      }
-    } catch {
-      // Body might be empty, ignore
-    }
+    let reportType = "standard";
+    let now = todayET();
 
-    // ── Timing ──
-    const now = todayET();
+    try {
+      const text = await req.text();
+      if (text) {
+        const body = JSON.parse(text);
+        if (body?.report_type) {
+          reportType = body.report_type;
+        }
+        if (body?.target_date) {
+          const [y, m, d] = body.target_date.split("-").map(Number);
+          if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+            // Force a specific hour to avoid any UTC-day-flipping issues
+            now = new Date(Date.UTC(y, m - 1, d, 20, 0, 0)); 
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Parsing error:", e);
+    }
+    
     const dateStr = formatDate(now);
     const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
 
@@ -639,7 +650,7 @@ Deno.serve(async (req) => {
       if (inStockError) throw new Error(`In-stock data fetch error: ${inStockError.message}`);
 
       const pdfBytes = await generateInStockValuationPdf(inStockData || [], dateStr);
-      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfBytes)));
+      const pdfBase64 = uint8ArrayToBase64(new Uint8Array(pdfBytes));
 
       const resendResponse = await fetch("https://api.resend.com/emails", {
         method: "POST",
@@ -693,11 +704,11 @@ Deno.serve(async (req) => {
     }
 
     // 2. Process Summary Data (Line-grouped, excludes Void)
-    const { rows: summaryRows, weekLabel } = processReport(reportData || [], goalsData || []);
+    const { rows: summaryRows, weekLabel } = processReport(reportData || [], goalsData || [], now);
 
     // 3. Generate Summary PDF
     const summaryPdfBytes = await htmlTableToPdf(summaryRows, weekLabel, dateStr);
-    const summaryPdfBase64 = btoa(String.fromCharCode(...new Uint8Array(summaryPdfBytes)));
+    const summaryPdfBase64 = uint8ArrayToBase64(new Uint8Array(summaryPdfBytes));
 
     // 4. PREPARE ATTACHMENTS
     const attachments: any[] = [
@@ -724,14 +735,14 @@ Deno.serve(async (req) => {
       const sunday = now;
 
       ranges.push({
-        title: "Inventory Evaluation Report — Friday",
+        title: "Production Detail Report — Friday",
         filename: `Friday_Evaluation_Report_${formatDate(friday).replace(/\//g, "-")}.pdf`,
         start: startOfDay(friday),
         end: endOfDay(friday),
         timeLabel: formatDate(friday)
       });
       ranges.push({
-        title: "Inventory Evaluation Report — Weekend",
+        title: "Production Detail Report — Weekend",
         filename: `Weekend_Evaluation_Report_${formatDate(saturday).replace(/\//g, "-")}_to_${formatDate(sunday).replace(/\//g, "-")}.pdf`,
         start: startOfDay(saturday),
         end: endOfDay(sunday),
@@ -740,7 +751,7 @@ Deno.serve(async (req) => {
     } else {
       // Mon-Thu: Today only
       ranges.push({
-        title: "Inventory Evaluation Report — Daily",
+        title: "Production Detail Report — Daily",
         filename: `Evaluation_Report_${dateStr.replace(/\//g, "-")}.pdf`,
         start: startOfDay(now),
         end: endOfDay(now),
@@ -766,7 +777,7 @@ Deno.serve(async (req) => {
 
       attachments.push({
         filename: range.filename,
-        content: btoa(String.fromCharCode(...new Uint8Array(rangePdfBytes))),
+        content: uint8ArrayToBase64(new Uint8Array(rangePdfBytes)),
       });
     }
 
@@ -784,7 +795,7 @@ Deno.serve(async (req) => {
         from: emailFrom,
         to: [emailTo],
         reply_to: replyTo,
-        subject: `Mountain Oak Mill — Production & Evaluation Reports — ${dateStr}`,
+        subject: `Mountain Oak Mill — Production Reports — ${dateStr}`,
         html: emailHtml,
         attachments: attachments,
       }),
@@ -799,7 +810,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Reports sent to ${emailTo}`,
+        message: `Reports sent to ${emailTo} for ${dateStr}`,
         resend_id: resendResult.id,
         week: weekLabel,
         total_attachments: attachments.length,
