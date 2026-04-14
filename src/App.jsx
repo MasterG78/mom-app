@@ -242,7 +242,7 @@ export default function App() {
           {effectiveRole !== null && view === 'entry' && (
             <>
               <InventoryEntry session={session} onBundleCreated={triggerListRefresh} isTest={isTest} />
-              <InventoryList key={refreshKey} />
+              <InventoryList key={refreshKey} isTest={isTest} />
             </>
           )}
 
