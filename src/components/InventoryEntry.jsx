@@ -27,6 +27,22 @@ const inputStyle = {
   padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '16px',
 };
 
+const INITIAL_FORM_DATA = {
+  product_id: '',
+  species_id: '',
+  line: '',
+  boardfeet: '',
+  quantity: '',
+  length: '',
+  width: '',
+  rows: '',
+  note: '',
+  customer_name: '',
+  tagger: '',
+  copies: 2,
+  gap: 3
+};
+
 export default function InventoryEntry({ session, onBundleCreated, isTest }) {
   const [loading, setLoading] = useState(false)
   const [products, setProducts] = useState([])
@@ -40,21 +56,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
   // Removed local isTestMode state - now using isTest prop from App.jsx
 
 
-  const [formData, setFormData] = useState({
-    product_id: '',
-    species_id: '',
-    line: '',
-    boardfeet: '',
-    quantity: '',
-    length: '',
-    width: '',
-    rows: '',
-    note: '',
-    customer_name: '',
-    tagger: '',
-    copies: 2,
-    gap: 3
-  })
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA)
 
   // 1. Initial Data Fetch
   useEffect(() => {
@@ -240,7 +242,7 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
       }
 
       // Now clear the form
-      setFormData({ product_id: '', species_id: '', line: '', boardfeet: '', quantity: '', length: '', width: '', rows: '', gap: 3, note: '', customer_name: '', tagger: formData.tagger, copies: formData.copies })
+      setFormData(INITIAL_FORM_DATA)
       setSelectedProduct(null);
       setIsIssue(false);
       
@@ -290,8 +292,26 @@ export default function InventoryEntry({ session, onBundleCreated, isTest }) {
                     type="checkbox" 
                     checked={isIssue} 
                     onChange={(e) => {
-                      setIsIssue(e.target.checked);
-                      if (e.target.checked) setFormData(prev => ({ ...prev, copies: 0 }));
+                      const checked = e.target.checked;
+                      setIsIssue(checked);
+                      
+                      // Get product default if available
+                      const defaultQty = (selectedProduct && selectedProduct.unit_type === 'Each') 
+                        ? (selectedProduct.default_quantity || '') 
+                        : '';
+
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        line: INITIAL_FORM_DATA.line,
+                        tagger: INITIAL_FORM_DATA.tagger,
+                        copies: checked ? 0 : INITIAL_FORM_DATA.copies,
+                        quantity: defaultQty,
+                        boardfeet: INITIAL_FORM_DATA.boardfeet,
+                        // Also reset calculation inputs to ensure boardfeet doesn't immediately recalculate
+                        length: INITIAL_FORM_DATA.length,
+                        width: INITIAL_FORM_DATA.width,
+                        rows: INITIAL_FORM_DATA.rows
+                      }));
                     }} 
                     style={{ marginRight: '5px' }} 
                   />
