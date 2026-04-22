@@ -226,16 +226,16 @@ Deno.serve(async (req) => {
     doc.addImage(chartUint8, "PNG", 15, 45, 180, 90);
 
     // Table
-    const tableHead = [["Week Ending", "Revenue", "Gross Profit", "Closing Inv", "Inv Growth %", "Shrinkage"]];
+    const tableHead = [["Week Ending", "Revenue", "Gross Profit", "Closing Inv", "Production", "Adjustments"]];
     const tableBody = rows.map(r => [
       formatDate(new Date(r.week_ending)),
       `$${formatCurrency(r["Weekly Revenue"])}`,
       `$${formatCurrency(r["Gross Profit"])}`,
       `$${formatCurrency(r["Closing Inv"])}`,
-      `${r["Inv Growth %"]}%`,
+      `$${formatCurrency(r["Production"])}`,
       { 
-        content: `$${formatCurrency(r["Shrinkage/Discrepancy"])}`, 
-        styles: { textColor: Math.abs(r["Shrinkage/Discrepancy"]) > 100 ? [220, 53, 69] : [80, 80, 80] } 
+        content: `$${formatCurrency(r["Adjustments"])}`, 
+        styles: { textColor: Math.abs(r["Adjustments"]) > 100 ? [220, 53, 69] : [80, 80, 80] } 
       }
     ]);
 
