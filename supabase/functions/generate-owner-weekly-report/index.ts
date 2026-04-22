@@ -9,7 +9,8 @@ function formatDate(d: Date): string {
   return `${mm}/${dd}/${d.getFullYear()}`;
 }
 
-function formatCurrency(val: number): string {
+function formatCurrency(val: number | null | undefined): string {
+  if (val === null || val === undefined) return "0.00";
   return val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
@@ -100,7 +101,7 @@ function generateChartUrl(rows: WeeklyReportRow[]): string {
             },
             ticks: {
               beginAtZero: true,
-              callback: (val: number) => '$' + val.toLocaleString()
+              callback: (val: number) => '$' + (val?.toLocaleString() || '0')
             }
           },
           {
@@ -114,7 +115,7 @@ function generateChartUrl(rows: WeeklyReportRow[]): string {
             },
             ticks: {
               beginAtZero: false,
-              callback: (val: number) => '$' + val.toLocaleString()
+              callback: (val: number) => '$' + (val?.toLocaleString() || '0')
             },
             gridLines: {
               drawOnChartArea: false
@@ -130,6 +131,7 @@ function generateChartUrl(rows: WeeklyReportRow[]): string {
 
 // ── Main Handler ───────────────────────────────────────────────────────
 Deno.serve(async (req) => {
+  console.log("Function invoked:", req.method);
   try {
     if (req.method === "OPTIONS") {
       return new Response("ok", {
@@ -148,37 +150,60 @@ Deno.serve(async (req) => {
     const emailFrom = Deno.env.get("REPORT_EMAIL_FROM") || "Mountain Oak Mill Reports <onboarding@resend.dev>";
     const replyTo = Deno.env.get("REPORT_REPLY_TO") || "greg@mountainoakmill.com";
 
+    console.log("Env check:", { 
+      supabaseUrl: !!supabaseUrl, 
+      supabaseKey: !!supabaseServiceRoleKey, 
+      resendKey: !!resendApiKey,
+      emailTo 
+    });
+
     if (!resendApiKey) {
-      throw new Error("RESEND_API_KEY not configured");
+      throw new Error("RESEND_API_KEY not configured. Please set it in Supabase secrets.");
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Fetch last 10 weeks
+    console.log("Fetching report data...");
     const { data: reportData, error: reportError } = await supabase
       .from("owner_weekly_trend_report")
       .select("*")
       .order("week_ending", { ascending: false })
       .limit(10);
 
-    if (reportError) throw reportError;
+    if (reportError) {
+       console.error("DB Error:", reportError);
+       throw reportError;
+    }
+    
     if (!reportData || reportData.length === 0) {
+      console.warn("No data found in owner_weekly_trend_report");
       return new Response(JSON.stringify({ success: false, message: "No data found" }), {
         headers: { "Content-Type": "application/json" }
       });
     }
 
+    console.log(`Successfully fetched ${reportData.length} weeks of data.`);
     const rows = reportData as WeeklyReportRow[];
     const now = todayET();
     const dateStr = formatDate(now);
 
     // 1. Generate Chart Image
+    console.log("Generating QuickChart URL...");
     const chartUrl = generateChartUrl(rows);
+    console.log("Fetching chart image from:", chartUrl);
+    
     const chartResponse = await fetch(chartUrl);
+    if (!chartResponse.ok) {
+       const errText = await chartResponse.text();
+       throw new Error(`QuickChart failed: ${chartResponse.status} ${errText}`);
+    }
     const chartBuffer = await chartResponse.arrayBuffer();
     const chartUint8 = new Uint8Array(chartBuffer);
+    console.log(`Chart generated. Buffer size: ${chartUint8.length}`);
 
     // 2. Generate PDF
+    console.log("Building PDF...");
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
     // Header
