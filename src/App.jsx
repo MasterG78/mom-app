@@ -9,6 +9,7 @@ import ProductionReport from './components/Production'
 import Export from './components/Export'
 import PrintTagModal from './components/PrintTagModal'
 import InventoryManager from './components/InventoryManager'
+import ProductionGoals from './components/ProductionGoals'
 
 const mockData = {
   tag: '999999',
@@ -203,6 +204,12 @@ export default function App() {
             >
               Production
             </button>
+            <button
+              style={navButtonStyle(view === 'goals')}
+              onClick={() => setView('goals')}
+            >
+              Production Goals
+            </button>
             {canManage && (
               <button
                 style={navButtonStyle(view === 'export')}
@@ -260,6 +267,10 @@ export default function App() {
 
           {effectiveRole !== null && view === 'production' && (
             <ProductionReport />
+          )}
+
+          {effectiveRole !== null && view === 'goals' && (
+            <ProductionGoals effectiveRole={effectiveRole} />
           )}
 
           {canManage && view === 'export' && (
